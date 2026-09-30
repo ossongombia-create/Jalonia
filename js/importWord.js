@@ -202,7 +202,7 @@ function dateVersIso(texte) {
 // « Réalisation » -> « realisation » (et les anciens domaines : « Dépôt / Infrastructure » -> « depot ») ; libellé inconnu : vide.
 function lireDomaine(texte) {
   const k = minuscule(texte);
-  const trouve = [["management", "management"], ["pilotage", "management"], ["realisation", "realisation"], ["realization", "realisation"], ["support", "support"],
+  const trouve = [["management", "management"], ["pilotage", "management"], ["realisation", "realisation"], ["realization", "realisation"], ["support", "support"], ["verification", "verification"],
     ["exploitation", "exploitation"], ["operation", "exploitation"], ["maintenance", "maintenance"], ["depot", "depot"], ["infrastructure", "depot"],
     ["hse", "hse"], ["urgence", "hse"], ["emergency", "hse"]].find(([mot]) => k.includes(mot));
   return trouve && domaineValide(trouve[1]) ? trouve[1] : "";

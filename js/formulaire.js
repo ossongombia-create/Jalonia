@@ -177,7 +177,7 @@ export function rendreIdentification(conteneur) {
   choixType.addEventListener("change", () => store.modifierMeta("typeDocument", choixType.value));
   const choixDomaine = h("select", { "aria-label": t("form.domaine") },
     h("option", { value: "" }, t("form.choisir")),
-    // Les trois blocs de la cartographie ; un ancien domaine (fichier d'avant la v0.20) reste affiché tant qu'on ne le change pas.
+    // Management, Réalisation, Support (les blocs de la cartographie) et Vérification ; un ancien domaine (fichier d'avant la v0.20) reste affiché tant qu'on ne le change pas.
     ...[...DOMAINES, ...(DOMAINES_ANCIENS.includes(m.domaine) ? [m.domaine] : [])].map((k) => h("option", { value: k, selected: m.domaine === k }, t("domaine." + k))));
   choixDomaine.addEventListener("change", () => store.modifierMeta("domaine", choixDomaine.value));
   const champSelect = (libelle, select, requis, aide) => h("label", { class: "champ" + (requis ? " requis" : "") }, h("span", {}, libelle), select, aide ? h("small", { class: "aide-champ" }, aide) : null);
