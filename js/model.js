@@ -19,8 +19,9 @@ export const SECTIONS = [
   "logigramme", "indicateurs", "risques", "enregistrements", "diffusion",
 ];
 
-// Domaines proposés dans l'en-tête du modèle : les trois BLOCS de la cartographie des processus (management, réalisation, support),
-// plus « vérification » (v0.25, à choisir à la main : la cartographie n'a que trois blocs) ; l'intitulé vient de i18n : domaine.<clé>.
+// Domaines proposés dans l'en-tête du modèle : les BLOCS de la cartographie des processus (management, réalisation, support, vérification).
+// « Vérification » est d'abord entré dans cette liste (v0.25), puis la cartographie a reçu le même 4e bloc (v0.27) : les deux listes coïncident.
+// L'intitulé vient de i18n : domaine.<clé>.
 // Les anciens domaines (v0.11 à v0.19) restent lisibles : un fichier qui en porte un le garde (sa signature de validation ne change
 // pas), mais on ne les propose plus.
 export const DOMAINES = ["management", "realisation", "support", "verification"];

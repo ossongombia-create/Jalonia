@@ -3,13 +3,13 @@
 //
 //   cartographie = {
 //     organisation, titre, contexte, exigences, satisfaction,      textes de la cartographie (facultatifs)
-//     processus: [{ id, code, nom, categorie }],                    code = PIL, ACH, VEN… ; categorie = management | realisation | support
+//     processus: [{ id, code, nom, categorie }],                    code = PIL, ACH, VEN… ; categorie = management | realisation | support | verification
 //     flux:      [{ id, de, vers, information, double }],           échange d'information entre deux « points » (voir POINTS)
 //     documents: [{ id, code, titre }],                             registre (facultatif) des codes déjà attribués : PR-ACH-01…
 //     nomenclature: { controle, procedure, instruction },           la façon dont l'organisation code ses documents (voir plus bas)
 //   }
 //
-// Un « point » d'un échange est l'id d'un processus, ou l'un des mots : management, realisation, support (un bloc entier),
+// Un « point » d'un échange est l'id d'un processus, ou l'un des mots : management, realisation, support, verification (un bloc entier),
 // contexte, exigences, satisfaction (les parties intéressées à l'entrée et à la sortie).
 //
 // La cartographie est celle de CHAQUE organisation : rien ici n'est propre à une entreprise. L'exemple (exemple-carto.js) est celui d'une organisation fictive.
@@ -17,7 +17,9 @@
 
 import { nouvelId } from "./model.js";
 
-export const CATEGORIES = ["management", "realisation", "support"];
+// Les blocs de la cartographie. « Vérification » a été ajouté en v0.27 (demande de Brice) pour que la cartographie suive la liste
+// « Domaine » (model.js, DOMAINES) : management, réalisation, support, vérification. Le livre n'en montre que trois ; le quatrième est un ajout de l'organisation.
+export const CATEGORIES = ["management", "realisation", "support", "verification"];
 export const EXTREMITES = ["contexte", "exigences", "satisfaction"];
 export const POINTS_FIXES = [...CATEGORIES, ...EXTREMITES];
 
@@ -193,7 +195,7 @@ export function fluxDuProcessus(c, idProcessus) {
   return res;
 }
 
-// Ordre d'affichage : management, réalisation, support, puis les processus sans catégorie.
+// Ordre d'affichage : management, réalisation, support, vérification, puis les processus sans catégorie.
 export function processusParCategorie(c) {
   const groupes = CATEGORIES.map((k) => ({ categorie: k, processus: c.processus.filter((p) => p.categorie === k) }));
   const sans = c.processus.filter((p) => !p.categorie);

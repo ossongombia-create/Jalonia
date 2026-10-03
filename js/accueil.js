@@ -51,7 +51,7 @@ export function resumeDocument(p, constats = [], courante = 1) {
   };
 }
 
-// La cartographie par blocs (management, réalisation, support) : les codes des processus de chaque bloc ; les processus sans bloc à part.
+// La cartographie par blocs (management, réalisation, support, vérification) : les codes des processus de chaque bloc ; les processus sans bloc à part.
 export function blocsCartographie(carto) {
   const processus = (carto && carto.processus) || [];
   const puce = (p) => ({ code: p.code || p.nom || "", nom: p.nom || "" });

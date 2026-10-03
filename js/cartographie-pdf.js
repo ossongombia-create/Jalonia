@@ -189,6 +189,7 @@ function categorieDuTexte(s) {
   if (/manag|pilot|direction/.test(m)) return "management";
   if (/realis|realiz|operation|metier|coeur|core|production|delivery/.test(m)) return "realisation";
   if (/support|soutien|ressource/.test(m)) return "support";
+  if (/verif|surveill|controle|audit|mesure|evaluation|checking/.test(m)) return "verification"; // 4e bloc (v0.27)
   return "";
 }
 

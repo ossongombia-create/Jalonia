@@ -156,7 +156,7 @@ function carteProcessus(c) {
     h("div", {}, h("button", { type: "button", onclick: () => { const id = cs.ajouterProcessus(); if (id) focusApres = id; } }, icone("plus", 16, 2.2), t("carto.processus.ajouter"))));
 }
 
-// Les extrémités possibles d'un échange : un processus, un bloc (management, réalisation, support) ou l'extérieur de la cartographie.
+// Les extrémités possibles d'un échange : un processus, un bloc (management, réalisation, support, vérification) ou l'extérieur de la cartographie.
 function optionsPoints(c, valeur) {
   const groupe = (libelle, options) => h("optgroup", { label: libelle }, ...options);
   return [

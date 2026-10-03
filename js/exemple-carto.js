@@ -1,7 +1,7 @@
-// exemple-carto.js — UN EXEMPLE de cartographie des processus, celle d'une organisation FICTIVE (« Entreprise Exemple ») : 9 processus
-// répartis en trois blocs (management, réalisation, support), les échanges dessinés par les flèches, et les documents cités dans la
-// procédure d'exemple PR-VEN-01. L'application est faite pour toute organisation : chacune charge la sienne (PDF, fichier .json ou saisie).
-// Cet exemple ne sert qu'à essayer (v0.26 : contenu neutre).
+// exemple-carto.js — UN EXEMPLE de cartographie des processus, celle d'une organisation FICTIVE (« Entreprise Exemple ») : 10 processus
+// répartis en quatre blocs (management, réalisation, support, vérification), les échanges dessinés par les flèches, et les documents cités
+// dans la procédure d'exemple PR-VEN-01. L'application est faite pour toute organisation : chacune charge la sienne (PDF, fichier .json ou saisie).
+// Cet exemple ne sert qu'à essayer (v0.26 : contenu neutre ; v0.27 : bloc « Vérification » ajouté).
 
 export function exempleCartographie() {
   const processus = [
@@ -14,6 +14,7 @@ export function exempleCartographie() {
     ["ACH", "Acheter et gérer les stocks", "support"],
     ["FIN", "Gérer les finances", "support"],
     ["SIN", "Gérer les systèmes d'information", "support"],
+    ["SUR", "Surveiller, mesurer et auditer", "verification"],
   ].map(([code, nom, categorie]) => ({ id: "q-" + code.toLowerCase(), code, nom, categorie }));
   const flux = [
     ["contexte", "management", "Enjeux, risques et opportunités ⇄ orientations stratégiques", true],
@@ -23,6 +24,8 @@ export function exempleCartographie() {
     ["q-rea", "q-liv", "Produits ou services réalisés", false],
     ["q-liv", "satisfaction", "Produits livrés et facturés", false],
     ["q-ven", "satisfaction", "Réponses aux demandes et aux réclamations", false],
+    ["realisation", "verification", "Données, produits et services à contrôler", false],
+    ["verification", "management", "Résultats des contrôles, mesures et audits", false],
     ["support", "realisation", "Personnel, équipements, achats, outils SI", false],
     ["realisation", "support", "Besoins en ressources", false],
   ].map(([de, vers, information, double], i) => ({ id: "f" + (i + 1), de, vers, information, double }));
