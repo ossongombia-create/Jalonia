@@ -5,7 +5,7 @@ import { h } from "./dom.js";
 import { icone } from "./icones.js";
 
 // Couleur d'un rôle = sa colonne dans le logigramme (6 rôles au maximum). Le point de couleur aide à les reconnaître d'un coup d'œil.
-export const COULEURS_ROLES = ["#0079c1", "#0f9d8a", "#7a4fd0", "#d9730d", "#c2417a", "#5b7ca3"];
+export const COULEURS_ROLES = ["#005a70", "#6f5091", "#2a9d8f", "#c9772b", "#b0457a", "#5f7b94"];
 export const couleurRole = (i) => COULEURS_ROLES[((i % COULEURS_ROLES.length) + COULEURS_ROLES.length) % COULEURS_ROLES.length];
 
 // Le point de couleur d'un rôle.

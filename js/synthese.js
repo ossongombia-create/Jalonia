@@ -13,6 +13,7 @@ import { taillePointsSurA4, croisementsNiveau2, SEUIL_PT } from "./render.js";
 import { constatsLisibilite } from "./conseils.js";
 import { construireDocument, estimerPages, verifierLongueur, listeRisques, listeNiveau3, listeControles, listeDecisions, PAGES_MAX, PAGES_CIBLE_MIN } from "./document.js";
 import { bloquantsSynthese, estValidee } from "./parcours.js";
+import { constatsQuestionnement, questionnement, sansDoublons } from "./questionnement.js";
 import { carteAvec, pointRole } from "./cartes.js";
 import { icone } from "./icones.js";
 
@@ -35,7 +36,7 @@ function bloc(nomIcone, titre, etapeModifiable, allerA, ...contenu) {
 function pointsAttention(p) {
   const doc = construireDocument(p);
   const carto = lireCartographie();
-  const alertes = [...verifier(p, { nomenclature: carto.nomenclature }), ...verifierCodes(p, carto), ...verifierLongueur(doc)].filter((c) => c.gravite === "alerte").map((c) => t(c.cle, c.params));
+  const alertes = [...sansDoublons(verifier(p, { nomenclature: carto.nomenclature }), p), ...constatsQuestionnement(p), ...verifierCodes(p, carto), ...verifierLongueur(doc)].filter((c) => c.gravite === "alerte").map((c) => t(c.cle, c.params));
   const pt = taillePointsSurA4(p);
   if (pt !== null && pt < SEUIL_PT) {
     alertes.push(t("regle.logigramme.trop_haut", { pt: nombre(pt), seuil: nombre(SEUIL_PT) }));
@@ -62,6 +63,7 @@ export function rendreSynthese(zone, allerA) {
   const nHorsControle = p.etapes.filter((e) => !e.controle.actif).length;
   const bloquants = bloquantsSynthese(p);
   const attention = pointsAttention(p);
+  const questions = questionnement(p);
   const cols = colonnes(p).length;
 
   const identification = h("dl", { class: "synth-id" },
@@ -125,7 +127,9 @@ export function rendreSynthese(zone, allerA) {
       h("ul", { class: "indicateurs-synth" },
         h("li", { class: cols > 6 ? "erreur" : "ok" }, t("synth.indic.roles", { n: cols })),
         h("li", { class: nHorsControle >= 5 && nHorsControle <= 10 ? "ok" : "alerte" }, t("synth.indic.instructions", { n: nHorsControle })),
-        h("li", { class: pages > PAGES_MAX ? "erreur" : pages >= PAGES_CIBLE_MIN ? "ok" : "neutre" }, t("doc.pages", { n: pages, min: PAGES_CIBLE_MIN, max: PAGES_MAX }))),
+        h("li", { class: pages > PAGES_MAX ? "erreur" : pages >= PAGES_CIBLE_MIN ? "ok" : "neutre" }, t("doc.pages", { n: pages, min: PAGES_CIBLE_MIN, max: PAGES_MAX })),
+        // Le questionnement en 11 points : une seule ligne, et seulement quand tout est respecté ; sinon, les points manquants sont dans les listes ci-dessous.
+        questions.respectes ? h("li", { class: "ok" }, t("synth.indic.questionnement.procedure", { n: questions.unites })) : null),
       bloquants.length
         ? h("div", { class: "liste-bloquants" }, h("strong", {}, t("synth.bloquants")), h("ul", {}, ...bloquants.map((c) => h("li", { class: "erreur" }, t(c.cle, c.params)))))
         : h("p", { class: "aide ok" }, t("synth.conforme")),

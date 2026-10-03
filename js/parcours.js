@@ -12,6 +12,7 @@ import { verifier } from "./rules.js";
 import { verifierIT } from "./rules-it.js";
 import { construireDocument, verifierLongueur } from "./document.js";
 import { signatureContenu } from "./model.js";
+import { constatsQuestionnement, sansDoublons } from "./questionnement.js";
 
 export const ETAPES = ["identification", "deroule", "synthese", "generation"];
 
@@ -84,8 +85,9 @@ export function manquantsDeroule(p) {
 // Étape 3 : ce qui empêche de valider la synthèse (règles du langage enfreintes, document trop long).
 export function bloquantsSynthese(p) {
   // Instruction de travail : les règles du chapitre 7 (la tenue sur une page A4 est jugée sur le dessin : voir diagnostic).
-  if (estInstruction(p)) return verifierIT(p).filter((c) => c.gravite === "erreur");
-  const constats = [...verifier(p), ...verifierLongueur(construireDocument(p))];
+  // Dans les deux cas, les points essentiels du questionnement en 11 points (questionnement.js) s'ajoutent aux règles du langage.
+  if (estInstruction(p)) return [...sansDoublons(verifierIT(p), p), ...constatsQuestionnement(p)].filter((c) => c.gravite === "erreur");
+  const constats = [...sansDoublons(verifier(p), p), ...constatsQuestionnement(p), ...verifierLongueur(construireDocument(p))];
   return constats.filter((c) => c.gravite === "erreur");
 }
 
@@ -128,7 +130,7 @@ export function etapeInitiale(p) {
   return Math.min(etapeMax(p), 2);
 }
 
-// L'état de chacune des 4 étapes, pour la colonne marine et pour l'accueil : « fait » (remplie), « courant » (celle où l'on se trouve),
+// L'état de chacune des 4 étapes, pour la colonne sarcelle et pour l'accueil : « fait » (remplie), « courant » (celle où l'on se trouve),
 // « afaire » (ouverte, pas encore remplie) ou « verrouille » (une étape précédente reste à remplir). La dernière étape n'est jamais « faite ».
 export function etatsEtapes(p, courante) {
   const remplie = ETAPES.map((_, i) => (i < ETAPES.length - 1 ? etapeComplete(p, i + 1) : false));

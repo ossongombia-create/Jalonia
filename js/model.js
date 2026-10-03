@@ -385,7 +385,7 @@ export function exempleValiderCommande() {
   p.etapes = [
     e({ roleId: assistante.id, libelle: "Réceptionner la commande client", entree: "Demande client", entreeDe: "Client", sortie: "Commande reçue", outils: [{ id: "o1", type: "document", nom: "FO-32-02" }, { id: "o2", type: "materiel", nom: "Scanner" }] }),
     e({ roleId: assistante.id, libelle: "Vérifier le besoin client", entree: "Commande reçue", sortie: "Besoin validé" }),
-    e({ roleId: comptable.id, libelle: "Établir le devis", entree: "Besoin validé", sortie: "Devis", participants: [assistante.id], outils: [{ id: "o3", type: "document", nom: "ERP Odoo, module Vente" }] }),
+    e({ roleId: comptable.id, libelle: "Établir le devis", entree: "Besoin validé", sortie: "Devis", participants: [assistante.id], outils: [{ id: "o3", type: "document", nom: "Logiciel de gestion, module Vente" }] }),
     e({ roleId: comptable.id, libelle: "Enregistrer la commande", entree: "Bon de commande", sortie: "Commande enregistrée" }),
     e({ roleId: assistante.id, libelle: "Classer le dossier commande", entree: "Commande enregistrée", sortie: "Dossier classé", outils: [{ id: "o4", type: "document", nom: "EN-22-03" }] }),
   ];

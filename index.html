@@ -7,17 +7,27 @@
   <meta name="robots" content="noindex, nofollow">
   <!-- Le titre définitif (le nom de l'outil, réglé dans js/config.js) est posé au démarrage par main.js. -->
   <title>Rédaction graphique de procédures</title>
+  <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
+  <meta name="theme-color" content="#005a70">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-vue="accueil">
-  <!-- Colonne marine : la marque, la procédure en cours, les 4 étapes, la langue -->
+  <!-- Colonne sarcelle : la marque, la procédure en cours, les 4 étapes, la langue -->
   <aside id="rail">
     <button type="button" id="btn-accueil" class="marque" data-i18n-titre="accueil.retour">
-      <svg class="logo-marque" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#0079C1"/><rect x="8" y="8" width="11" height="11" rx="3" fill="#fff"/><rect x="21" y="21" width="11" height="11" rx="3" fill="#fff"/><path d="M19 13.5h5a3 3 0 0 1 3 3V21" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
-      <div>
-        <div class="marque-nom" data-i18n="app.marque"></div>
-        <div class="marque-sous" data-i18n="app.sous_titre"></div>
-      </div>
+      <svg class="logo-marque" width="44" height="44" viewBox="0 0 100 100" aria-hidden="true"><defs>
+<linearGradient id="mA" gradientUnits="userSpaceOnUse" x1="14" y1="14" x2="88" y2="72"><stop offset="0" stop-color="#d9cdea"/><stop offset="1" stop-color="#9fd5e2"/></linearGradient>
+<linearGradient id="mB" gradientUnits="userSpaceOnUse" x1="86" y1="86" x2="14" y2="28"><stop offset="0" stop-color="#9fd5e2"/><stop offset="1" stop-color="#d9cdea"/></linearGradient>
+</defs>
+<path d="M21 23.8L50 7L87.2 28.5V58" fill="none" stroke="url(#mA)" stroke-width="10" stroke-linejoin="round"/>
+<path d="M76 77.9L50 93L12.8 71.5V42" fill="none" stroke="url(#mB)" stroke-width="10" stroke-linejoin="round"/>
+<path d="M75.4 56H99L87.2 76Z" fill="#9fd5e2" transform="translate(-0.0 0)"/>
+<path d="M24.6 44H1L12.8 24Z" fill="#d9cdea"/>
+<path d="M41 32H55L64 41V63a5 5 0 0 1-5 5H41a5 5 0 0 1-5-5V37a5 5 0 0 1 5-5Z" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linejoin="round"/>
+<path d="M55 32.5V41H63.5" fill="none" stroke="#d9cdea" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M42.5 48.5H51M42.5 54.5H57.5M42.5 60.5H50" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/></svg>
+      <div class="marque-nom" data-i18n="app.marque"></div>
+      <div class="marque-sous" data-i18n="app.sous_titre"></div>
     </button>
     <div id="carte-procedure" class="carte-procedure"></div>
     <nav id="parcours"></nav>

@@ -17,12 +17,14 @@ import { formaterDate } from "./document.js";
 const HAUT_LIGNE_12 = 14.4; // hauteur d'une ligne de texte en corps 12
 const MARGE = 24;
 // Couleurs du modèle : bleu des bordures et des titres, rouge des retours, gris des couloirs et des outils.
-const BLEU = "#0079C1";
+// Charte Jalonia : sarcelle pour les formes du logigramme, violet pour l'accent du bandeau ; le rouge des retours et le gris des outils sont ceux de la légende.
+const SARCELLE = "#005A70";
+const VIOLET = "#6F5091";
 const ROUGE = "#A61E22";
-const ENCRE = "#1B1F27";
+const ENCRE = "#1C2A33";
 const GRIS_TEXTE = "#555B66";
-const GRIS_LIGNE = "#C9CFD8";
-const GRIS_COULOIR = "#F3F5F9";
+const GRIS_LIGNE = "#CFC9D8";
+const GRIS_COULOIR = "#F4F1F7";
 const POLICE = "Calibri, Carlito, 'Segoe UI', Arial, sans-serif";
 // Réglages de mise en page : nombre de caractères par ligne dans un panier d'information (flèches) et dans l'étiquette
 // d'une alternative. On essaie plusieurs valeurs (voir choisirMiseEnPage) et on garde celle qui donne le texte le plus grand sur A4.
@@ -95,7 +97,7 @@ function mesurerPanier(cas, info, contrat = false) {
   return { cas, info, contrat, w: Math.ceil(px + 14 + (contrat ? LARGEUR_CONTRAT : 0)), h: Math.max(n * HAUT_PANIER_LIGNE + 8, contrat ? 28 : 0) };
 }
 // Symbole « contrat » : une feuille à coin replié et trois lignes de texte, centrée sur (xc, yc).
-function symboleContrat(xc, yc, couleur = BLEU) {
+function symboleContrat(xc, yc, couleur = SARCELLE) {
   const x0 = xc - 6;
   const x1 = xc + 6;
   const y0 = yc - 9;
@@ -106,7 +108,7 @@ function symboleContrat(xc, yc, couleur = BLEU) {
     `<path d="M${r1(x1 - c)} ${r1(y0)}V${r1(y0 + c)}H${r1(x1)}" fill="none" stroke="${couleur}" stroke-width="1" stroke-linejoin="round"/>${lignes}</g>`;
 }
 // Dessine un panier dont le centre est en (xc, yc) : une « coupe » (haut ouvert, coins du bas arrondis), fond blanc, posée sur la flèche.
-function dessinerPanier(p, xc, yc, couleur = BLEU) {
+function dessinerPanier(p, xc, yc, couleur = SARCELLE) {
   const total = p.cas.length + p.info.length;
   const haut = yc - p.h / 2;
   const x0 = r1(xc - p.w / 2);
@@ -171,33 +173,33 @@ function symboleRecyclage(x, y) {
   const px = Math.cos(a);
   const py = Math.sin(a);
   const pointe = `${r1(x1 + dx * 6)},${r1(y1 + dy * 6)} ${r1(x1 + px * 4)},${r1(y1 + py * 4)} ${r1(x1 - px * 4)},${r1(y1 - py * 4)}`;
-  return `<path d="M${r1(x0)} ${r1(y0)}A${r} ${r} 0 1 1 ${r1(x1)} ${r1(y1)}" fill="none" stroke="${BLEU}" stroke-width="2.4"/><polygon points="${pointe}" fill="${BLEU}"/>`;
+  return `<path d="M${r1(x0)} ${r1(y0)}A${r} ${r} 0 1 1 ${r1(x1)} ${r1(y1)}" fill="none" stroke="${SARCELLE}" stroke-width="2.4"/><polygon points="${pointe}" fill="${SARCELLE}"/>`;
 }
 
 // Cercle de contrainte : toujours un « + » (légende Qualigramme : délai, coût ou exigence à respecter). La nature (délai, coût, autre)
 // est gardée dans les données et reprise dans le document, pas dans le dessin.
 function cercleContrainte(x, y) {
-  return `<circle cx="${x}" cy="${y}" r="10" fill="#fff" stroke="${BLEU}" stroke-width="1.8"/>` +
-    `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="15" font-weight="700" fill="${BLEU}">+</text>`;
+  return `<circle cx="${x}" cy="${y}" r="10" fill="#fff" stroke="${SARCELLE}" stroke-width="1.8"/>` +
+    `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="15" font-weight="700" fill="${SARCELLE}">+</text>`;
 }
 
 // Fanion d'indicateur de performance : une hampe et un pavillon triangulaire, posés sur le bord haut de l'instruction (x = pied de la hampe).
 function fanion(x, yBord) {
-  return `<line x1="${r1(x)}" y1="${r1(yBord)}" x2="${r1(x)}" y2="${r1(yBord - 20)}" stroke="${BLEU}" stroke-width="1.8"/>` +
-    `<polygon points="${r1(x)},${r1(yBord - 20)} ${r1(x + 13)},${r1(yBord - 15)} ${r1(x)},${r1(yBord - 10)}" fill="${BLEU}" stroke="${BLEU}" stroke-width="1" stroke-linejoin="round"/>`;
+  return `<line x1="${r1(x)}" y1="${r1(yBord)}" x2="${r1(x)}" y2="${r1(yBord - 20)}" stroke="${SARCELLE}" stroke-width="1.8"/>` +
+    `<polygon points="${r1(x)},${r1(yBord - 20)} ${r1(x + 13)},${r1(yBord - 15)} ${r1(x)},${r1(yBord - 10)}" fill="${SARCELLE}" stroke="${SARCELLE}" stroke-width="1" stroke-linejoin="round"/>`;
 }
 
 // Petite flèche pleine, pointe en bas, dont la pointe touche (x, yPointe) ; un trait la relie à (x, yDepart).
 function flecheCourte(x, yDepart, yPointe) {
-  const ligne = yPointe - 7 > yDepart ? `<line x1="${r1(x)}" y1="${r1(yDepart)}" x2="${r1(x)}" y2="${r1(yPointe - 6)}" stroke="${BLEU}" stroke-width="1.8"/>` : "";
-  return `${ligne}<polygon points="${r1(x - 4.5)},${r1(yPointe - 8)} ${r1(x + 4.5)},${r1(yPointe - 8)} ${r1(x)},${r1(yPointe)}" fill="${BLEU}"/>`;
+  const ligne = yPointe - 7 > yDepart ? `<line x1="${r1(x)}" y1="${r1(yDepart)}" x2="${r1(x)}" y2="${r1(yPointe - 6)}" stroke="${SARCELLE}" stroke-width="1.8"/>` : "";
+  return `${ligne}<polygon points="${r1(x - 4.5)},${r1(yPointe - 8)} ${r1(x + 4.5)},${r1(yPointe - 8)} ${r1(x)},${r1(yPointe)}" fill="${SARCELLE}"/>`;
 }
 
 // Action amont ou aval (hors périmètre) — symbole du livre (§6.5.12-13 pour une procédure, §7.5.9-10 pour une instruction) :
 // le TEXTE de l'action est écrit sur une BARRE, reliée à la suite du dessin par une flèche d'information (avec son panier).
 // Le rôle de provenance (amont) ou de destination (aval) est un petit ovale gris (fig. 7.7) : au-dessus du texte pour une
 // action amont, sous le texte pour une action aval. De haut en bas : amont = ovale, texte, barre ; aval = barre, texte, ovale.
-// La flèche est OBLIQUE ET DESCENDANTE, comme dans le livre (v0.17, demande de Brice) : elle part du centre de la barre (amont) ou
+// La flèche est OBLIQUE ET DESCENDANTE, comme dans le livre (v0.17) : elle part du centre de la barre (amont) ou
 // arrive au centre de la barre (aval), avec le panier sur son milieu. Elle est courte : le panier recouvre l'essentiel de sa hauteur.
 const PX_RACCORD = 6.2; // largeur moyenne d'un caractère gras, corps 10,5
 const PENTE_RACCORD = 0.9; // décalage horizontal de la flèche par unité de hauteur (≈ 42° par rapport à la verticale)
@@ -236,19 +238,19 @@ function dessinerRaccord(m, xc, y0, xFleche = xc) {
   const yBarre = amont ? y0 + m.hauteur : y0;
   const xa = r1(Math.min(xc - m.largeur / 2, xFleche - 10));
   const xb = r1(Math.max(xc + m.largeur / 2, xFleche + 10));
-  let s = `<line x1="${xa}" y1="${r1(yBarre)}" x2="${xb}" y2="${r1(yBarre)}" stroke="${BLEU}" stroke-width="2.2"/>`;
+  let s = `<line x1="${xa}" y1="${r1(yBarre)}" x2="${xb}" y2="${r1(yBarre)}" stroke="${SARCELLE}" stroke-width="2.2"/>`;
   const yTexte = amont ? y0 + (m.hauteurRole ? m.hauteurRole + 3 : 0) + m.hauteurTexte / 2 : y0 + 3 + m.hauteurTexte / 2;
   s += txt(m.lignes, xc, yTexte, { taille: 10.5, gras: true });
   if (m.lignesRole.length) {
     const yo = amont ? y0 + m.hauteurRole / 2 : y0 + 3 + m.hauteurTexte + 3 + m.hauteurRole / 2;
-    s += `<ellipse cx="${r1(xc)}" cy="${r1(yo)}" rx="${r1(m.largeurRole / 2)}" ry="${r1(m.hauteurRole / 2)}" fill="#D9DDE4" stroke="${GRIS_TEXTE}" stroke-width="1.2"/>`;
+    s += `<ellipse cx="${r1(xc)}" cy="${r1(yo)}" rx="${r1(m.largeurRole / 2)}" ry="${r1(m.hauteurRole / 2)}" fill="#DDD8E4" stroke="${GRIS_TEXTE}" stroke-width="1.2"/>`;
     s += txt(m.lignesRole, xc, yo, { taille: 9, italique: true, couleur: ENCRE });
   }
   return s;
 }
 // Flèche d'information oblique descendante de (xDe, yDe) à (xA, yA), avec son panier au milieu s'il y a une information.
 function flecheRaccord(m, xDe, yDe, xA, yA) {
-  let s = `<path d="M${r1(xDe)} ${r1(yDe)}L${r1(xA)} ${r1(yA)}" fill="none" stroke="${BLEU}" stroke-width="1.8" marker-end="url(#flechePetite)"/>`;
+  let s = `<path d="M${r1(xDe)} ${r1(yDe)}L${r1(xA)} ${r1(yA)}" fill="none" stroke="${SARCELLE}" stroke-width="1.8" marker-end="url(#flechePetite)"/>`;
   if (m.panier) {
     // Le panier est posé sur la flèche, près de son départ : la pointe reste bien visible sous lui.
     const yc = yDe + 4 + m.panier.h / 2;
@@ -259,8 +261,8 @@ function flecheRaccord(m, xDe, yDe, xA, yA) {
 
 // Cercle d'opérateur (ou / et) : posé sur la sortie d'une décision ou sur l'arrivée de plusieurs flèches.
 function cercleOperateur(x, y, op) {
-  return `<circle cx="${r1(x)}" cy="${r1(y)}" r="9" fill="#fff" stroke="${BLEU}" stroke-width="1.8"/>` +
-    `<text x="${r1(x)}" y="${r1(y + 3.2)}" text-anchor="middle" font-size="${t("logigramme.op." + op).length > 2 ? 7.5 : 9}" font-weight="700" fill="${BLEU}">${echapper(t("logigramme.op." + op))}</text>`;
+  return `<circle cx="${r1(x)}" cy="${r1(y)}" r="9" fill="#fff" stroke="${SARCELLE}" stroke-width="1.8"/>` +
+    `<text x="${r1(x)}" y="${r1(y + 3.2)}" text-anchor="middle" font-size="${t("logigramme.op." + op).length > 2 ? 7.5 : 9}" font-weight="700" fill="${SARCELLE}">${echapper(t("logigramme.op." + op))}</text>`;
 }
 
 // Bandeau bleu du haut : titre, sous-titre, processus — domaine, puis code, version, date et signataires.
@@ -297,7 +299,7 @@ function mesurerBanniere(procedure, largeur) {
     hauteur,
     dessiner: (W) => {
       let y = 10;
-      let s = `<rect x="0" y="0" width="${W}" height="${hauteur}" fill="${BLEU}"/>`;
+      let s = `<rect x="0" y="0" width="${W}" height="${hauteur}" fill="${SARCELLE}"/><rect x="0" y="${hauteur - 3}" width="${W}" height="3" fill="${VIOLET}"/>`;
       lignesTitre.forEach((l) => { y += 18; s += `<text x="16" y="${y - 5}" font-size="15" font-weight="700" fill="#fff">${echapper(l)}</text>`; });
       lignesSous.forEach((l) => { y += 12; s += `<text x="16" y="${y - 3}" font-size="10" font-style="italic" fill="#fff" fill-opacity="0.92">${echapper(l)}</text>`; });
       lignesProc.forEach((l) => { y += 12; s += `<text x="16" y="${y - 3}" font-size="10.5" font-weight="700" fill="#fff">${echapper(l)}</text>`; });
@@ -611,8 +613,8 @@ function construire(procedure, params = PARAMS_DEFAUT) {
   // ----- Dessin -----
   const flecheDef = (id, couleur) => `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="${couleur}"/></marker>`;
   const flecheGriseDef = `<marker id="flecheGrise" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="${GRIS_TEXTE}"/></marker>`;
-  const flechePetiteDef = `<marker id="flechePetite" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="${BLEU}"/></marker>`; // pointe des flèches obliques amont / aval
-  parts.push(`<defs>${flecheDef("fleche", BLEU)}${flecheDef("flecheRouge", ROUGE)}${flecheGriseDef}${flechePetiteDef}</defs>`);
+  const flechePetiteDef = `<marker id="flechePetite" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="${SARCELLE}"/></marker>`; // pointe des flèches obliques amont / aval
+  parts.push(`<defs>${flecheDef("fleche", SARCELLE)}${flecheDef("flecheRouge", ROUGE)}${flecheGriseDef}${flechePetiteDef}</defs>`);
   parts.push(ban.dessiner(Math.ceil(Math.max(droite, LARGEUR_BANNIERE_MIN))));
   const largeur = Math.ceil(Math.max(droite, LARGEUR_BANNIERE_MIN));
   // Couloirs de rôles : fond gris une colonne sur deux, filets verticaux, repères horizontaux en pointillé entre les lignes.
@@ -629,7 +631,7 @@ function construire(procedure, params = PARAMS_DEFAUT) {
   cols.forEach((role, k) => {
     const epais = role.type === "unite" ? 4.4 : 2.2;
     if (role.type === "externe") parts.push(`<ellipse cx="${cx(k) + 4}" cy="${yEntete + 4}" rx="${LARGEUR_COL / 2 - 10}" ry="${ryRole}" fill="${GRIS_LIGNE}"/>`);
-    parts.push(`<ellipse cx="${cx(k)}" cy="${yEntete}" rx="${LARGEUR_COL / 2 - 10}" ry="${ryRole}" fill="#fff" stroke="${BLEU}" stroke-width="${epais}"/>`);
+    parts.push(`<ellipse cx="${cx(k)}" cy="${yEntete}" rx="${LARGEUR_COL / 2 - 10}" ry="${ryRole}" fill="#fff" stroke="${SARCELLE}" stroke-width="${epais}"/>`);
     parts.push(txt(nomsRoles[k], cx(k), yEntete, { taille: 12, gras: true }));
   });
 
@@ -639,8 +641,8 @@ function construire(procedure, params = PARAMS_DEFAUT) {
     parts.push(dessinerRaccord(amont, debutDessin.xBoite, debutDessin.yBoite, xDebut - amont.dx));
   } else {
     parts.push(txt(debutDessin.ann.lignes, debutDessin.ann.xc, debutDessin.yTexte, { taille: 10, italique: true, couleur: GRIS_TEXTE }));
-    parts.push(`<circle cx="${xDebut}" cy="${r1(debutDessin.yCercle)}" r="${R_SYMBOLE}" fill="#fff" stroke="${BLEU}" stroke-width="2.2"/>`);
-    parts.push(`<rect x="${xDebut - 15}" y="${r1(debutDessin.yBarre)}" width="30" height="${H_BARRE}" fill="${BLEU}"/>`);
+    parts.push(`<circle cx="${xDebut}" cy="${r1(debutDessin.yCercle)}" r="${R_SYMBOLE}" fill="#fff" stroke="${SARCELLE}" stroke-width="2.2"/>`);
+    parts.push(`<rect x="${xDebut - 15}" y="${r1(debutDessin.yBarre)}" width="30" height="${H_BARRE}" fill="${SARCELLE}"/>`);
   }
 
   // Flèches principales : de l'instruction (ou du cercle ou / et) à la suivante ; le panier d'information est posé dessus.
@@ -655,12 +657,12 @@ function construire(procedure, params = PARAMS_DEFAUT) {
     } else if (b === fin && aval) {
       // Dernière instruction → action aval : tronc vertical jusqu'aux renvois vers la fin, puis flèche oblique sur la barre de l'action aval.
       const yQueue = p.yMain0 + p.so.rallonge;
-      if (yQueue > y1) parts.push(`<path d="M${a.x} ${r1(y1)}V${r1(yQueue)}" fill="none" stroke="${BLEU}" stroke-width="1.8"/>`);
+      if (yQueue > y1) parts.push(`<path d="M${a.x} ${r1(y1)}V${r1(yQueue)}" fill="none" stroke="${SARCELLE}" stroke-width="1.8"/>`);
       parts.push(flecheRaccord({ panier: p.panier && !p.so.aDroite ? p.panier : null }, a.x, yQueue, a.x + finDessin.dxQueue, p.bas - 0.5));
       if (p.panier && p.so.aDroite) paniersPrincipaux.push(dessinerPanier(p.panier, a.x + 12 + p.panier.w / 2, p.yAlt0 + 2 + p.panier.h / 2));
     } else {
       const chemin = a.x === bx ? `M${a.x} ${r1(y1)}V${r1(p.bas)}` : `M${a.x} ${r1(y1)}V${r1(p.ySaut)}H${bx}V${r1(p.bas)}`;
-      parts.push(`<path d="${chemin}" fill="none" stroke="${BLEU}" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#fleche)"/>`);
+      parts.push(`<path d="${chemin}" fill="none" stroke="${SARCELLE}" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#fleche)"/>`);
       if (p.panier && p.so.aDroite) {
         paniersPrincipaux.push(dessinerPanier(p.panier, a.x + 12 + p.panier.w / 2, p.yAlt0 + 2 + p.panier.h / 2));
       } else if (p.panier) {
@@ -668,14 +670,14 @@ function construire(procedure, params = PARAMS_DEFAUT) {
         paniersPrincipaux.push(dessinerPanier(p.panier, xc, p.ySaut));
       }
     }
-    if (b.entree) parts.push(`<path d="M${bx} ${r1(b.yEntree + 9)}V${r1(b.boxHaut)}" fill="none" stroke="${BLEU}" stroke-width="1.8" marker-end="url(#fleche)"/>`);
+    if (b.entree) parts.push(`<path d="M${bx} ${r1(b.yEntree + 9)}V${r1(b.boxHaut)}" fill="none" stroke="${SARCELLE}" stroke-width="1.8" marker-end="url(#fleche)"/>`);
   });
 
   // Renvois : couloirs verticaux dans la gouttière de gauche ; un point marque chaque jonction au milieu d'un couloir.
   const paniersAlt = [];
   ordreCouloirs.forEach((g, rang) => {
     const lx = MARGE + 8 + rang * LARGEUR_LANE;
-    const couleur = g.retour ? ROUGE : BLEU;
+    const couleur = g.retour ? ROUGE : SARCELLE;
     const trait = `fill="none" stroke="${couleur}" stroke-width="1.8" stroke-linejoin="round"${g.retour ? ' stroke-dasharray="7 4"' : ""}`;
     parts.push(`<path d="M${lx} ${r1(g.min)}V${r1(g.max)}" ${trait}/>`);
     g.departs.forEach((d) => parts.push(`<path d="M${d.x} ${r1(d.y)}H${lx}" ${trait}/>`));
@@ -694,14 +696,14 @@ function construire(procedure, params = PARAMS_DEFAUT) {
     const gauche = x - demiLargeur;
     const largeurBoite = demiLargeur * 2;
     const cadre = (epais, retrait = 0, fond = "#fff") =>
-      `<rect x="${r1(gauche + retrait)}" y="${r1(boxHaut + retrait)}" width="${r1(largeurBoite - retrait * 2)}" height="${r1(n.demi * 2 - retrait * 2)}" fill="${fond}" stroke="${BLEU}" stroke-width="${epais}"/>`;
-    const bas = () => (n.lignesN3.length ? txt(n.lignesN3, x, boxBas - 3 - n.hautN3 / 2 - 1, { taille: 10, couleur: BLEU }) : "");
+      `<rect x="${r1(gauche + retrait)}" y="${r1(boxHaut + retrait)}" width="${r1(largeurBoite - retrait * 2)}" height="${r1(n.demi * 2 - retrait * 2)}" fill="${fond}" stroke="${SARCELLE}" stroke-width="${epais}"/>`;
+    const bas = () => (n.lignesN3.length ? txt(n.lignesN3, x, boxBas - 3 - n.hautN3 / 2 - 1, { taille: 10, couleur: SARCELLE }) : "");
     if (n.forme === "macroAlt") {
       let s_ = cadre(4.4);
       s_ += txt(n.lignes, x, boxHaut + 8 + (n.lignes.length * HAUT_LIGNE_12) / 2, { taille: 12, gras: true });
       let y = boxHaut + 8 + n.lignes.length * HAUT_LIGNE_12 + 6;
       n.compartiments.forEach((c) => {
-        s_ += `<rect x="${r1(gauche + 8)}" y="${r1(y)}" width="${r1(largeurBoite - 16)}" height="${r1(c.h)}" fill="none" stroke="${BLEU}" stroke-width="1.3" stroke-dasharray="4 3"/>`;
+        s_ += `<rect x="${r1(gauche + 8)}" y="${r1(y)}" width="${r1(largeurBoite - 16)}" height="${r1(c.h)}" fill="none" stroke="${SARCELLE}" stroke-width="1.3" stroke-dasharray="4 3"/>`;
         s_ += txt(c.lignes, x, y + c.h / 2, { taille: 10 });
         y += c.h + 4;
       });
@@ -709,11 +711,11 @@ function construire(procedure, params = PARAMS_DEFAUT) {
     }
     if (n.forme === "sp") {
       let s_ = cadre(4.4);
-      s_ += `<text x="${r1(x)}" y="${r1(boxHaut + 12)}" text-anchor="middle" font-size="8" font-weight="700" letter-spacing="0.8" fill="${BLEU}">${echapper(n.titreSP)}</text>`;
+      s_ += `<text x="${r1(x)}" y="${r1(boxHaut + 12)}" text-anchor="middle" font-size="8" font-weight="700" letter-spacing="0.8" fill="${SARCELLE}">${echapper(n.titreSP)}</text>`;
       s_ += txt(n.lignes, x, boxHaut + n.hautTitreSP + 4 + (n.lignes.length * HAUT_LIGNE_12) / 2, { taille: 12, gras: true });
       s_ += bas();
       // Indicateur (triangle) en bas à gauche.
-      s_ += `<polygon points="${r1(gauche + 8)},${r1(boxBas - 6)} ${r1(gauche + 22)},${r1(boxBas - 6)} ${r1(gauche + 15)},${r1(boxBas - 18)}" fill="#fff" stroke="${BLEU}" stroke-width="1.6" stroke-linejoin="round"/>`;
+      s_ += `<polygon points="${r1(gauche + 8)},${r1(boxBas - 6)} ${r1(gauche + 22)},${r1(boxBas - 6)} ${r1(gauche + 15)},${r1(boxBas - 18)}" fill="#fff" stroke="${SARCELLE}" stroke-width="1.6" stroke-linejoin="round"/>`;
       return s_;
     }
     if (n.forme === "macroReg") {
@@ -740,8 +742,8 @@ function construire(procedure, params = PARAMS_DEFAUT) {
     // Contrôle : triangle en haut à droite de l'instruction, avec la lettre de la nature du contrôle (Q, H, S, R, E).
     const xt = x + demiLargeur - 14;
     if (n.controle) {
-      parts.push(`<polygon points="${r1(xt)},${r1(boxHaut - 19)} ${r1(xt + 13)},${r1(boxHaut)} ${r1(xt - 13)},${r1(boxHaut)}" fill="#fff" stroke="${BLEU}" stroke-width="2" stroke-linejoin="round"/>`);
-      parts.push(`<text x="${r1(xt)}" y="${r1(boxHaut - 3)}" text-anchor="middle" font-size="10" font-weight="700" fill="${BLEU}">${echapper(n.controle)}</text>`);
+      parts.push(`<polygon points="${r1(xt)},${r1(boxHaut - 19)} ${r1(xt + 13)},${r1(boxHaut)} ${r1(xt - 13)},${r1(boxHaut)}" fill="#fff" stroke="${SARCELLE}" stroke-width="2" stroke-linejoin="round"/>`);
+      parts.push(`<text x="${r1(xt)}" y="${r1(boxHaut - 3)}" text-anchor="middle" font-size="10" font-weight="700" fill="${SARCELLE}">${echapper(n.controle)}</text>`);
     }
     if (n.correctrice) parts.push(symboleRecyclage(r1(xt), r1(boxHaut)));
     // Indicateur de performance : fanion sur le bord haut, à gauche du triangle ou du cercle de contrainte s'il y en a.
@@ -753,7 +755,7 @@ function construire(procedure, params = PARAMS_DEFAUT) {
     if (n.contrainte) {
       const xc = x + demiLargeur + (n.controle || n.correctrice ? 12 : -4);
       parts.push(cercleContrainte(r1(xc), r1(boxHaut)));
-      if (n.contrainte.lignes.length) parts.push(txt(n.contrainte.lignes, xc + 15, boxHaut - 2 - n.contrainte.lignes.length * 6, { taille: 10, gras: true, couleur: BLEU, ancre: "start" }));
+      if (n.contrainte.lignes.length) parts.push(txt(n.contrainte.lignes, xc + 15, boxHaut - 2 - n.contrainte.lignes.length * 6, { taille: 10, gras: true, couleur: SARCELLE, ancre: "start" }));
     }
     // Opérateur d'entrée (ET / OU) : cercle sur l'arrivée des flèches, au-dessus de l'instruction.
     if (n.entree) parts.push(cercleOperateur(x, n.yEntree, n.entree));
@@ -762,9 +764,9 @@ function construire(procedure, params = PARAMS_DEFAUT) {
       n.collab.toutes.forEach((c) => {
         const ox = cx(c);
         const oy = boxHaut - 12;
-        parts.push(`<line x1="${ox}" y1="${oy + 8}" x2="${ox}" y2="${r1(boxHaut)}" stroke="${BLEU}" stroke-width="1.4"/>`);
-        parts.push(`<ellipse cx="${ox}" cy="${r1(oy)}" rx="14" ry="8" fill="#fff" stroke="${BLEU}" stroke-width="1.8"/>`);
-        parts.push(`<text x="${ox}" y="${r1(oy + 3.5)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${BLEU}">${c === n.collab.responsable ? "R" : "P"}</text>`);
+        parts.push(`<line x1="${ox}" y1="${oy + 8}" x2="${ox}" y2="${r1(boxHaut)}" stroke="${SARCELLE}" stroke-width="1.4"/>`);
+        parts.push(`<ellipse cx="${ox}" cy="${r1(oy)}" rx="14" ry="8" fill="#fff" stroke="${SARCELLE}" stroke-width="1.8"/>`);
+        parts.push(`<text x="${ox}" y="${r1(oy + 3.5)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${SARCELLE}">${c === n.collab.responsable ? "R" : "P"}</text>`);
       });
     }
     // Outils : posés à droite de l'instruction, reliés par un trait pointillé (pas de colonne dédiée).
@@ -791,7 +793,7 @@ function construire(procedure, params = PARAMS_DEFAUT) {
   noeuds.forEach((n, k) => {
     if (!n.operateur) return;
     n.alts.forEach((a, j) => {
-      const couleur = a.retour ? ROUGE : BLEU;
+      const couleur = a.retour ? ROUGE : SARCELLE;
       if (j > 0) parts.push(`<circle cx="${n.x}" cy="${r1(a.yTrait)}" r="2.6" fill="${couleur}"/>`);
       if (a.panier) paniersAlt.push(dessinerPanier(a.panier, n.x - 16 - a.panier.w / 2, a.yTrait, couleur));
       if (a.cible === null) {
@@ -810,8 +812,8 @@ function construire(procedure, params = PARAMS_DEFAUT) {
   if (aval) {
     parts.push(dessinerRaccord(aval, finDessin.xBoite, finDessin.yBoite, xFin + finDessin.dxQueue));
   } else {
-    parts.push(`<rect x="${xFin - 15}" y="${r1(finDessin.yBarre)}" width="30" height="${H_BARRE}" fill="${BLEU}"/>`);
-    parts.push(`<circle cx="${xFin}" cy="${r1(finDessin.yCercle)}" r="${R_SYMBOLE}" fill="#fff" stroke="${BLEU}" stroke-width="2.2"/>`);
+    parts.push(`<rect x="${xFin - 15}" y="${r1(finDessin.yBarre)}" width="30" height="${H_BARRE}" fill="${SARCELLE}"/>`);
+    parts.push(`<circle cx="${xFin}" cy="${r1(finDessin.yCercle)}" r="${R_SYMBOLE}" fill="#fff" stroke="${SARCELLE}" stroke-width="2.2"/>`);
     parts.push(txt(finDessin.ann.lignes, finDessin.ann.xc, finDessin.yTexte, { taille: 10, italique: true, couleur: GRIS_TEXTE }));
   }
 
@@ -936,7 +938,7 @@ export function croisementsNiveau2(procedure) {
 // ----- Conseils de lisibilité -----
 // Quand le texte serait trop petit sur A4, on cherche les textes les plus longs dont le raccourcissement rendrait le plus de place,
 // et on dit ce que chacun rapporterait (en points). Le calcul se fait sur des copies : la procédure n'est jamais modifiée.
-export const SEUIL_PT = 5.5; // en dessous, le texte du logigramme est jugé trop petit (Brice a jugé 5,6 pt acceptable, 29/09/2026)
+export const SEUIL_PT = 5.5; // en dessous, le texte du logigramme est jugé trop petit (5,6 pt a été jugé acceptable lors des essais, 29/09/2026)
 const LONGUEURS_CONSEILLEES = { declencheur: 45, fin: 45, sortie: 45, condition: 30, alt_condition: 30, alt_info: 30, libelle: 60 };
 const NB_CONSEILS = 4;
 const pointsDe = (echelle) => echelle * 7.5; // texte de 10 px : 10 px x echelle x 72/96
@@ -1014,5 +1016,5 @@ export function taillePointsSurA4(procedure) {
 // Briques de dessin partagées avec le dessin du niveau 3 (render3.js) : mêmes symboles, mêmes couleurs, même style.
 export {
   echapper, txt, r1, mesurerPanier, dessinerPanier, symboleContrat, symboleRecyclage, cercleContrainte, flecheCourte, mesurerRaccord, dessinerRaccord, flecheRaccord, ecartRaccord, ecartOblique, PENTE_RACCORD, placerCentre,
-  BLEU, ROUGE, ENCRE, GRIS_TEXTE, GRIS_LIGNE, POLICE, PX, PX_GRAS, PX_G12, HAUT_LIGNE_12, HAUT_PANIER_LIGNE, LIGNE_ANNOTATION, pointsDe,
+  SARCELLE, ROUGE, ENCRE, GRIS_TEXTE, GRIS_LIGNE, POLICE, PX, PX_GRAS, PX_G12, HAUT_LIGNE_12, HAUT_PANIER_LIGNE, LIGNE_ANNOTATION, pointsDe,
 };

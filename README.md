@@ -1,3 +1,5 @@
+<p align="center"><img src="img/logo-jalonia.svg" alt="Jalonia — Smart Process Design. Ordo &amp; Performance" width="420"></p>
+
 # Jalonia
 
 **Version d'essai non commerciale.** Outil web pour rédiger des procédures et des instructions de travail en suivant le langage graphique Qualigramme : on renseigne le déroulé, l'outil vérifie les règles du langage, dessine le logigramme et génère un document Word ou PDF.
@@ -17,7 +19,7 @@
 3. Un guide de démarrage d'une page est lié dans la colonne de gauche (`guide-fr.html`, `guide-en.html`).
 
 ## Composants de tiers
-PDF.js (Mozilla, Apache 2.0) avec core-js (MIT), et la police Plus Jakarta Sans (SIL OFL 1.1) : voir `LICENCES-TIERS.md`.
+PDF.js (Mozilla, Apache 2.0) avec core-js (MIT), et la police Outfit (SIL OFL 1.1) : voir `LICENCES-TIERS.md`.
 
 ---
 

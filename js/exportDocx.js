@@ -3,7 +3,7 @@
 //   [Content_Types].xml        la liste des types de fichiers
 //   _rels/.rels                le point d'entrée (word/document.xml)
 //   word/document.xml          le contenu : en-tête, validation, historique, 11 sections
-//   word/styles.xml            Calibri 10,5 pt, titres bleus (0079C1)
+//   word/styles.xml            Calibri 10,5 pt, titres sarcelle (005A70), sous-titres violets (6F5091)
 //   word/settings.xml          mode de compatibilité Word récent
 //   word/footer1.xml           pied de page centré : code · version — titre · page X / Y
 //   word/media/logigramme.png  le logigramme, en image (fournie par le navigateur)
@@ -27,12 +27,14 @@ import { NOM_OUTIL } from "./config.js";
 const EMU_PAR_PX = 9525; // 96 dpi
 
 // Couleurs et mesures du modèle.
-const TEXTE = "1B1F27";
-const BLEU = "0079C1";
-const FOND_ETIQUETTE = "F5F6F8";
-const BORD = "D9DCE1";
-const PIED = "4A5568";
-const GRIS_VIDE = "7A8791";
+// Charte Jalonia (la même que l'aperçu : css/style.css, .feuille) : sarcelle pour les titres et les en-têtes de tableau, violet pour les sous-titres, lavande pour les étiquettes.
+const TEXTE = "1C2A33";
+const SARCELLE = "005A70";
+const VIOLET = "6F5091";
+const FOND_ETIQUETTE = "F1EEF4";
+const BORD = "D2CBDC";
+const PIED = "4E5A63";
+const GRIS_VIDE = "56666F";
 
 const PORTRAIT = { w: 11906, h: 16838, haut: 900, bas: 900, gauche: 1134, droite: 900 };
 const PAYSAGE = { w: 16838, h: 11906, haut: 600, bas: 950, gauche: 1134, droite: 700 };
@@ -93,7 +95,7 @@ function tableau(bloc) {
   const gras1 = bloc.gras1 || [];
   const enteteVide = bloc.colonnes.every((c) => !String(c).trim());
   const entete = enteteVide ? "" : ligneTableau(
-    bloc.colonnes.map((c, j) => cellule(c, largeurs[j], { gras: true, blanc: true, fond: BLEU, centre: centrees.includes(j) })), { entete: true });
+    bloc.colonnes.map((c, j) => cellule(c, largeurs[j], { gras: true, blanc: true, fond: SARCELLE, centre: centrees.includes(j) })), { entete: true });
   const corps = bloc.lignes.map((l) => {
     const visa = bloc.premiereColonneEtiquette && String(l[0]) === t("valid.ligne.visa");
     return ligneTableau(bloc.colonnes.map((_, j) => cellule(l[j] ?? "", largeurs[j], {
@@ -235,15 +237,15 @@ function piedXml(doc) {
 
 function stylesXml() {
   const langue = langueCourante() === "en" ? "en-GB" : "fr-FR";
-  const titre = (id, nom, avant, apres, taille, niveau) =>
+  const titre = (id, nom, avant, apres, taille, niveau, couleur) =>
     `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${nom}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:qFormat/>` +
     `<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="${avant}" w:after="${apres}"/><w:outlineLvl w:val="${niveau}"/></w:pPr>` +
-    `<w:rPr><w:b/><w:bCs/><w:color w:val="${BLEU}"/><w:sz w:val="${taille}"/><w:szCs w:val="${taille}"/></w:rPr></w:style>`;
+    `<w:rPr><w:b/><w:bCs/><w:color w:val="${couleur}"/><w:sz w:val="${taille}"/><w:szCs w:val="${taille}"/></w:rPr></w:style>`;
   return `${ENTETE_XML}<w:styles xmlns:w="${NS_W}"><w:docDefaults><w:rPrDefault><w:rPr>` +
     '<w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/>' + `<w:color w:val="${TEXTE}"/><w:sz w:val="21"/><w:szCs w:val="21"/>` +
     `<w:lang w:val="${langue}" w:eastAsia="${langue}" w:bidi="ar-SA"/></w:rPr></w:rPrDefault><w:pPrDefault/></w:docDefaults>` +
     '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>' +
-    titre("Titre1", "heading 1", MEP.titre1Avant, MEP.titre1Apres, 28, 0) + titre("Titre2", "heading 2", MEP.titre2Avant, MEP.titre2Apres, 22, 1) + "</w:styles>";
+    titre("Titre1", "heading 1", MEP.titre1Avant, MEP.titre1Apres, 28, 0, SARCELLE) + titre("Titre2", "heading 2", MEP.titre2Avant, MEP.titre2Apres, 22, 1, VIOLET) + "</w:styles>";
 }
 
 const SETTINGS = `${ENTETE_XML}<w:settings xmlns:w="${NS_W}"><w:compat>` +

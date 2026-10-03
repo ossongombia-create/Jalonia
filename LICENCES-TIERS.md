@@ -10,7 +10,7 @@ le dossier du composant, et une ligne dans `js/locales/fr.js` et `en.js` (`menti
 |---|---|---|---|---|---|
 | **PDF.js** (build « legacy », minifié, non modifié) | Mozilla Foundation (© 2024) | 6.3.289 | Apache License 2.0 | `vendor/pdfjs/pdf.min.js`, `vendor/pdfjs/pdf.worker.min.js` ; texte : `vendor/pdfjs/LICENSE` | Lire un PDF de cartographie des processus, dans le navigateur (chargé à la demande) |
 | **core-js** (embarqué dans PDF.js) | Denis Pushkarev ; CoreJS Company | 3.50.0 | MIT | dans les deux fichiers PDF.js ; texte : `vendor/pdfjs/LICENSE-core-js.txt` | Compatibilité des navigateurs (fait partie du build de PDF.js) |
-| **Plus Jakarta Sans** (sous-ensemble latin, graisses 400 à 800, format WOFF2) | The Plus Jakarta Sans Project Authors | — | SIL Open Font License 1.1 | `css/fonts/` ; texte : `css/fonts/LICENSE-PlusJakartaSans.txt` | Police de caractères de l'interface |
+| **Outfit** (sous-ensemble latin, graisses 400 à 800, format WOFF2) | The Outfit Project Authors | — | SIL Open Font License 1.1 | `css/fonts/` ; texte : `css/fonts/LICENSE-Outfit.txt` | Police de caractères de l'interface ; les lettres du logo (dossier `img/`) en sont dérivées |
 
 ## Ce que ces licences demandent (en clair)
 - **Apache 2.0 (PDF.js)** : conserver la licence et les mentions de copyright ; indiquer les modifications s'il y en a (ici : aucune). Pas de garantie.

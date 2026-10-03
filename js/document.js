@@ -377,7 +377,7 @@ export function colonnesCentrees(bloc) {
 // ---------- Estimation des pages ----------
 // On mesure en points (1 pt = 1/72 pouce) d'après la mise en page du Word généré (exportDocx.js) : A4, marges du modèle
 // (zone utile 752 pt de haut, 493,6 pt de large), texte Calibri 10,5 pt, tableaux 9 pt. Réglage vérifié avec LibreOffice
-// sur la procédure d'exemple (PR-QUA-01) : l'estimation doit être égale ou légèrement supérieure, jamais très inférieure.
+// sur la procédure d'exemple (PR-VEN-01) : l'estimation doit être égale ou légèrement supérieure, jamais très inférieure.
 export const PAGE_PT = 752;
 const LARGEUR_PT = LARGEUR_TEXTE / 20;
 // Réglages de mise en page communs au Word (exportDocx.js) et à l'estimation, en vingtièmes de point (twips).

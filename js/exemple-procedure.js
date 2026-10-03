@@ -1,6 +1,7 @@
-// exemple-procedure.js — L'EXEMPLE de procédure montré à l'utilisateur (menu Fichier › Exemple) : la procédure PR-QUA-01 « Gestion des
-// informations documentées » d'une organisation FICTIVE (« Entreprise Exemple », V0, 25/09/2026), sans aucun rôle externe.
+// exemple-procedure.js — L'EXEMPLE de procédure montré à l'utilisateur (menu Fichier › Exemple) : la procédure PR-VEN-01 « Traiter une
+// commande client » d'une organisation FICTIVE (« Entreprise Exemple », V0, 01/10/2026), sans aucun rôle externe.
 // Rien n'y est propre à une entreprise réelle : l'application sert à toute organisation, et cet exemple ne sert qu'à essayer.
+// Il est neutre et facile à remplacer : le sujet est volontairement banal (v0.26).
 // Les 11 sections du corps suivent le modèle standard de procédure (v0.11) ; les sections 5, 6 et 9 sont recalculées
 // à partir des rôles, des instructions et des risques que maîtrise chaque instruction (bloc « genere »). Les contrôles
 // (triangle Q) et les retours vers l'étape 2 sont des suites (alternatives) des instructions concernées : ils apparaissent
@@ -10,109 +11,109 @@ import { nouvelleProcedure, nouvelleEtape, nouveauRisque, nouvelleAlternative, n
 
 export function exempleProcedure() {
   const p = nouvelleProcedure();
-  const pilote = { id: "r-pilote", nom: "Pilote de processus", type: "individuel", service: "Service du processus concerné", responsabilite: "Identifie le besoin, rédige et met à jour les documents de son processus, les révise au besoin." };
-  const qualite = { id: "r-qualite", nom: "Responsable qualité", type: "individuel", service: "Service qualité", responsabilite: "Administrateur documentaire : vérifie, codifie, enregistre, diffuse et retire les documents ; tient les registres, les fichiers maîtres et la liste de veille des documents externes." };
-  const dg = { id: "r-dg", nom: "Direction", type: "unite", service: "Direction", responsabilite: "Approuve les documents (ou autorité déléguée)." };
-  const util = { id: "r-util", nom: "Utilisateurs", type: "individuel", service: "Tous services", responsabilite: "Appliquent la version en vigueur ; remontent les écarts et suggestions au pilote." };
-  p.roles = [pilote, qualite, dg, util];
+  const charge = { id: "r-charge", nom: "Chargé de clientèle", type: "individuel", service: "Service commercial", responsabilite: "Qualifie les demandes, établit les offres, enregistre les commandes, informe le client, suit sa satisfaction." };
+  const logistique = { id: "r-log", nom: "Responsable logistique", type: "individuel", service: "Service logistique", responsabilite: "Vérifie la faisabilité, réserve le stock, prépare et expédie les commandes, archive les dossiers ; tient le registre des commandes." };
+  const compta = { id: "r-compta", nom: "Comptable", type: "individuel", service: "Service financier", responsabilite: "Facture les commandes expédiées et suit les règlements." };
+  const dg = { id: "r-dg", nom: "Direction", type: "unite", service: "Direction générale", responsabilite: "Valide les commandes qui sortent du cadre habituel (montant, délai, conditions particulières)." };
+  p.roles = [charge, logistique, dg, compta];
   p.meta = {
     ...p.meta,
     organisation: "Entreprise Exemple",
-    direction: "Qualité (transversal, tous services)",
-    processus: "QUA Maîtriser et améliorer la qualité",
-    pilote: "Responsable qualité",
+    direction: "Ventes et logistique",
+    processus: "VEN Vendre et contractualiser",
+    pilote: "Responsable commercial",
     typeDocument: "procedure",
-    titre: "Gestion des informations documentées", reference: "PR-QUA-01", version: "V0", niveau: 2,
-    domaine: "support", dateApplication: "2026-09-25",
+    titre: "Traiter une commande client", reference: "PR-VEN-01", version: "V0", niveau: 2,
+    domaine: "realisation", dateApplication: "2026-10-01",
     signataires: {
-      redige: { nom: "", fonction: "Pilote de processus", date: "2026-09-25" },
-      verifie: { nom: "", fonction: "Responsable qualité", date: "" },
+      redige: { nom: "", fonction: "Chargé de clientèle", date: "2026-10-01" },
+      verifie: { nom: "", fonction: "Responsable logistique", date: "" },
       approuve: { nom: "", fonction: "Direction", date: "" },
     },
-    revisions: [nouvelleRevision({ id: "v1", version: "V0", date: "2026-09-25", nature: "Création initiale du document", auteur: "Responsable qualité" })],
-    declencheur: "Besoin de créer, modifier ou retirer un document, exprimé auprès du pilote du processus",
-    fin: "Document en vigueur ou archivé, registre EN-QUA-01 à jour (étapes 9 et 10)",
+    revisions: [nouvelleRevision({ id: "v1", version: "V0", date: "2026-10-01", nature: "Création initiale du document", auteur: "Responsable commercial" })],
+    declencheur: "Demande de prix ou de commande reçue d'un client (téléphone, courriel ou formulaire)",
+    fin: "Commande clôturée et dossier archivé, registre EN-VEN-01 à jour (étapes 6 et 10)",
   };
   const e = (champs) => nouvelleEtape(champs);
   p.etapes = [
-    e({ roleId: pilote.id, libelle: "Identifier le besoin documentaire", entree: "Besoin exprimé", entreeDe: "tout collaborateur", sortie: "Besoin qualifié" }),
-    e({ roleId: pilote.id, libelle: "Rédiger le document", entree: "Besoin qualifié ou demande de correction (étapes 3, 5, 9)", sortie: "Projet V0 « brouillon, non applicable »", versQui: "Responsable qualité", outils: [{ id: "o1", type: "document", nom: "FO-QUA-01" }, { id: "o2", type: "document", nom: "IT-QUA-01" }] , risques: [nouveauRisque({ id: "k1", risque: "Document non approuvé utilisé", causes: "Projet circulant avant approbation", gravite: "3", probabilite: "2", mesure: "Mention « brouillon, non applicable » sur toute V0" })]}),
-    e({ roleId: qualite.id, libelle: "Vérifier le document", entree: "Projet V0", entreeDe: "Pilote", sortie: "Document conforme, ou non conforme avec avis motivé (Pilote) ; délai 10 jours ouvrés", outils: [{ id: "o3", type: "document", nom: "IT-QUA-01" }] }),
-    e({ roleId: qualite.id, libelle: "Codifier le document", entree: "Document conforme", sortie: "Document codifié, toujours en V0", versQui: "Direction", outils: [{ id: "o4", type: "document", nom: "EN-QUA-01" }] }),
-    e({ roleId: dg.id, libelle: "Approuver le document", entree: "Document codifié", entreeDe: "Responsable qualité", sortie: "Document approuvé et signé, ou réserves", versQui: "Pilote", outils: [{ id: "o5", type: "document", nom: "Bloc « Validation du document »" }] }),
-    e({ roleId: qualite.id, libelle: "Enregistrer le document", entree: "Document approuvé", sortie: "Document V1 enregistré, fichier maître en lecture seule", outils: [{ id: "o6", type: "document", nom: "EN-QUA-01" }] , risques: [nouveauRisque({ id: "k2", risque: "Perte ou altération d'un fichier maître", causes: "Panne, suppression, virus", gravite: "3", probabilite: "2", mesure: "Emplacement unique, lecture seule, sauvegarde et restauration testée" })]}),
-    e({ roleId: qualite.id, libelle: "Diffuser le document", entree: "Document enregistré", sortie: "PDF diffusé, version précédente retirée", versQui: "Utilisateurs", outils: [{ id: "o7", type: "document", nom: "EN-QUA-02" }] , risques: [nouveauRisque({ id: "k3", risque: "Document non validé diffusé", causes: "Diffusion hors circuit, copies de travail", gravite: "3", probabilite: "3", mesure: "Contrôles des étapes 3 et 5 ; diffusion réservée au Responsable qualité" }), nouveauRisque({ id: "k4", risque: "Plusieurs versions en circulation", causes: "Retrait incomplet des anciennes versions", gravite: "4", probabilite: "2", mesure: "Retrait systématique, liste des copies papier, marquage « obsolète »" })]}),
-    e({ roleId: util.id, libelle: "Appliquer le document", entree: "PDF diffusé, sensibilisation si besoin", sortie: "Retours d'application", versQui: "Pilote" }),
-    e({ roleId: pilote.id, libelle: "Réviser le document", entree: "Retours, changement, incident, audit", sortie: "Décision tracée : maintien, modification (étape 2) ou retrait (étape 10)" , risques: [nouveauRisque({ id: "k5", risque: "Changement non suivi d'une revue", causes: "Changement non signalé au pilote", gravite: "3", probabilite: "2", mesure: "Le pilote apprécie l'incidence de tout changement et déclenche la revue" })]}),
-    e({ roleId: qualite.id, libelle: "Retirer le document obsolète", entree: "Décision de retrait", sortie: "Document identifié « obsolète », archivé puis éliminé à l'échéance", outils: [{ id: "o8", type: "document", nom: "EN-QUA-01" }] , risques: [nouveauRisque({ id: "k6", risque: "Élimination prématurée d'une preuve", causes: "Durée de conservation mal connue", gravite: "4", probabilite: "1", mesure: "Élimination après vérification de l'échéance ; aucune élimination si la durée est inconnue" })]}),
+    e({ roleId: charge.id, libelle: "Qualifier la demande du client", entree: "Demande du client", entreeDe: "client", sortie: "Demande qualifiée", outils: [{ id: "o0", type: "document", nom: "Fiche de demande" }] }),
+    e({ roleId: charge.id, libelle: "Établir l'offre", entree: "Demande qualifiée ou offre à ajuster (étapes 3, 5, 9)", sortie: "Offre chiffrée, non engageante tant qu'elle n'est pas validée", versQui: "Responsable logistique", outils: [{ id: "o1", type: "document", nom: "FO-VEN-01" }, { id: "o2", type: "document", nom: "Grille tarifaire" }], risques: [nouveauRisque({ id: "k1", risque: "Prix erroné communiqué au client", causes: "Tarif obsolète, saisie manuelle", gravite: "3", probabilite: "2", mesure: "Tarif unique tenu à jour ; offre relue avant envoi" })] }),
+    e({ roleId: logistique.id, libelle: "Vérifier la faisabilité", entree: "Offre chiffrée", entreeDe: "Chargé de clientèle", sortie: "Offre faisable, ou non faisable avec avis motivé (Chargé de clientèle) ; délai 2 jours ouvrés", outils: [{ id: "o3", type: "document", nom: "Tableau de stock" }] }),
+    e({ roleId: logistique.id, libelle: "Réserver le stock", entree: "Offre faisable", sortie: "Stock réservé pour la date promise", versQui: "Direction", outils: [{ id: "o4", type: "document", nom: "EN-VEN-01" }] }),
+    e({ roleId: dg.id, libelle: "Valider la commande", entree: "Offre faisable, stock réservé", entreeDe: "Responsable logistique", sortie: "Commande validée et signée, ou réserves", versQui: "Chargé de clientèle", outils: [{ id: "o5", type: "document", nom: "Grille de délégation" }] }),
+    e({ roleId: charge.id, libelle: "Enregistrer la commande", entree: "Commande validée", sortie: "Commande enregistrée, accusé de réception envoyé au client", outils: [{ id: "o6", type: "document", nom: "EN-VEN-01" }], risques: [nouveauRisque({ id: "k2", risque: "Commande perdue ou saisie en double", causes: "Saisie manuelle, deux canaux de réception", gravite: "3", probabilite: "2", mesure: "Numéro unique par commande ; recherche des doublons à la saisie" })] }),
+    e({ roleId: logistique.id, libelle: "Expédier la commande", entree: "Commande enregistrée", sortie: "Marchandise expédiée, bon de livraison émis", versQui: "Comptable", outils: [{ id: "o7", type: "document", nom: "EN-VEN-02" }], risques: [nouveauRisque({ id: "k3", risque: "Livraison à une mauvaise adresse", causes: "Adresse incomplète, saisie erronée", gravite: "3", probabilite: "3", mesure: "Adresse confirmée avec le client ; contrôle avant départ" }), nouveauRisque({ id: "k4", risque: "Marchandise endommagée pendant le transport", causes: "Emballage insuffisant, transporteur", gravite: "4", probabilite: "2", mesure: "Emballage adapté, réserves écrites à la livraison, assurance" })] }),
+    e({ roleId: compta.id, libelle: "Facturer la commande", entree: "Marchandise expédiée", sortie: "Facture émise et envoyée", versQui: "Chargé de clientèle" }),
+    e({ roleId: charge.id, libelle: "Suivre la satisfaction du client", entree: "Facture émise, retours du client", sortie: "Décision tracée : clôture, nouvelle offre (étape 2) ou litige", risques: [nouveauRisque({ id: "k5", risque: "Réclamation non traitée", causes: "Retour client non remonté", gravite: "3", probabilite: "2", mesure: "Revue hebdomadaire des retours ; réponse sous 5 jours ouvrés" })], outils: [{ id: "o10", type: "document", nom: "Registre des réclamations" }] }),
+    e({ roleId: logistique.id, libelle: "Archiver le dossier de commande", entree: "Décision de clôture", sortie: "Dossier archivé et stock à jour", versQui: "Responsable commercial", outils: [{ id: "o8", type: "document", nom: "EN-VEN-01" }], risques: [nouveauRisque({ id: "k6", risque: "Perte d'une preuve de livraison", causes: "Archivage incomplet, durée de conservation mal connue", gravite: "4", probabilite: "1", mesure: "Dossier complet vérifié avant archivage ; aucune élimination avant l'échéance" })] }),
   ];
   const [, s2, s3, , s5, , , , s9] = p.etapes;
   // Contrôles (triangle Q) : exemple de points de contrôle ; « Suite si non conforme » = retour à l'étape 2.
-  s3.controle = { actif: true, nature: "Q", critere: "Conforme au modèle FO-QUA-01 et aux 11 points du contrôle avant diffusion (IT-QUA-01) ; exigences HSSE et réglementaires intégrées ; cohérent avec les autres documents", enregistrement: "Visa « Vérifié par »" };
-  s3.condition = "Conforme";
-  s3.sortie = "Document conforme ; délai 10 jours ouvrés";
-  s3.alternatives = [nouvelleAlternative({ id: "a1", condition: "Non conforme", info: "Avis motivé", versQui: "Pilote de processus", vers: s2.id })];
-  s5.controle = { actif: true, nature: "Q", critere: "Contenu validé par l'autorité d'approbation", enregistrement: "Visa « Approuvé par », registre EN-QUA-01" };
-  s5.condition = "Approuvé";
-  s5.sortie = "Document approuvé et signé";
-  s5.versQui = "Responsable qualité";
-  s5.alternatives = [nouvelleAlternative({ id: "a2", condition: "Réserves", info: "Réserves formulées", versQui: "Pilote de processus", vers: s2.id })];
-  // Révision : trois suites possibles (retrait = suite normale, modification = retour à l'étape 2, maintien = fin).
-  s9.condition = "Retrait";
-  s9.sortie = "Décision de retrait tracée";
-  s9.versQui = "Responsable qualité";
+  s3.controle = { actif: true, nature: "Q", critere: "Stock disponible et délai de livraison tenable ; prix cohérent avec la grille tarifaire ; conditions de paiement précisées", enregistrement: "Visa « Faisabilité vérifiée »" };
+  s3.condition = "Faisable";
+  s3.sortie = "Offre faisable ; délai 2 jours ouvrés";
+  s3.alternatives = [nouvelleAlternative({ id: "a1", condition: "Non faisable", info: "Avis motivé", versQui: "Chargé de clientèle", vers: s2.id })];
+  s5.controle = { actif: true, nature: "Q", critere: "Conditions commerciales acceptables ; montant dans la limite de la délégation", enregistrement: "Visa « Validé par », registre EN-VEN-01" };
+  s5.condition = "Validée";
+  s5.sortie = "Commande validée et signée";
+  s5.versQui = "Chargé de clientèle";
+  s5.alternatives = [nouvelleAlternative({ id: "a2", condition: "Réserves", info: "Réserves formulées", versQui: "Chargé de clientèle", vers: s2.id })];
+  // Suivi : trois suites possibles (clôture = suite normale, nouvelle offre = retour à l'étape 2, litige = fin de la procédure).
+  s9.condition = "Clôture";
+  s9.sortie = "Décision de clôture tracée";
+  s9.versQui = "Responsable logistique";
   s9.alternatives = [
-    nouvelleAlternative({ id: "a3", condition: "Modification", info: "Décision de modification tracée", versQui: "Pilote de processus", vers: s2.id }),
-    nouvelleAlternative({ id: "a4", condition: "Maintien", info: "Décision de maintien tracée", vers: "fin" }),
+    nouvelleAlternative({ id: "a3", condition: "Nouvelle offre", info: "Demande de modification tracée", versQui: "Chargé de clientèle", vers: s2.id }),
+    nouvelleAlternative({ id: "a4", condition: "Litige", info: "Litige transmis à la Direction", vers: "fin" }),
   ];
   p.corps = {
     objet: [
-      {"id":"b1","type":"p","texte":"Définir comment l'organisation crée, vérifie, codifie, approuve, diffuse, révise, archive et élimine ses informations documentées, sur papier ou en numérique. La procédure garantit que seule la version en vigueur d'un document est utilisée et que les preuves exigées restent disponibles pendant leur durée de conservation."},
+      {"id":"b1","type":"p","texte":"Définir comment l'organisation reçoit, vérifie, valide, enregistre, expédie, facture et clôture les commandes de ses clients. La procédure garantit que chaque commande est traitée dans le délai promis, avec le bon prix et la bonne marchandise, et que les preuves de livraison restent disponibles pendant leur durée de conservation."},
     ],
     domaine: [
-      {"id":"b2","type":"p","texte":"Toutes les informations documentées internes de l'organisation, pour tous les services et tous les sites : fiches processus, procédures, instructions de travail, formulaires et enregistrements. Elle couvre aussi les documents d'origine externe (textes réglementaires, normes, exigences contractuelles) et les fichiers numériques du système documentaire. Exclusion : la mise en place d'un outil de gestion électronique des documents (GED). La procédure démarre quand un besoin de création, de modification ou de retrait est exprimé par tout collaborateur auprès du pilote du processus concerné (nouvelle activité, évolution réglementaire, changement organisationnel ou d'équipement, incident, non-conformité, audit, retour terrain)."},
+      {"id":"b2","type":"p","texte":"Toutes les commandes de clients de l'organisation, pour toutes les gammes de produits ou de services et tous les canaux de réception (téléphone, courriel, formulaire, rendez-vous). Elle couvre aussi les offres chiffrées qui précèdent la commande, les livraisons partielles et les réclamations qui suivent. Exclusion : la gestion des appels d'offres publics. La procédure démarre quand une demande de prix ou de commande est reçue d'un client (nouveau client, réapprovisionnement, besoin ponctuel, réponse à une offre, renouvellement d'un contrat)."},
     ],
     references: [
       {"id":"b3","type":"p","texte":"Exigences et documents de référence :"},
-      {"id":"b4","type":"tableau","colonnes":["Type","Référence","Intitulé"],"lignes":[["Norme","ISO 9001:2026, § 7.5","Informations documentées"],["Norme","ISO 14001:2015 et ISO 45001:2018, § 7.5","Informations documentées"],["Norme","ISO 19011:2018","Lignes directrices pour l'audit des systèmes de management"],["Document interne","FO-QUA-01","Modèle standard de procédure"],["Document interne","IT-QUA-01","Guide de rédaction des procédures"],["Document interne","Cartographie","Cartographie des processus de l'organisation (codes processus)"]]},
+      {"id":"b4","type":"tableau","colonnes":["Type","Référence","Intitulé"],"lignes":[["Norme","ISO 9001, § 8.2","Exigences relatives aux produits et services"],["Norme","ISO 9001, § 8.5","Production et prestation de service"],["Réglementation","Conditions générales de vente","Texte en vigueur dans l'organisation"],["Document interne","FO-VEN-01","Modèle d'offre commerciale"],["Document interne","IT-VEN-01","Enregistrer une commande"],["Document interne","Cartographie","Cartographie des processus de l'organisation (codes processus)"]]},
     ],
     definitions: [
       {"id":"b5","type":"p","texte":"Termes et sigles utilisés :"},
-      {"id":"b6","type":"tableau","colonnes":["Terme / Sigle","Définition"],"lignes":[["Information documentée","Information à maîtriser et à tenir à jour, avec son support (ISO 9001). Recouvre les documents et les enregistrements, papier ou numériques."],["Document maîtrisé","Document codifié, versionné, enregistré au registre EN-QUA-01 et diffusé de façon contrôlée."],["Enregistrement","Information documentée qui prouve qu'une activité a été réalisée (fiche remplie, registre, compte rendu)."],["Document obsolète","Document retiré de la diffusion, remplacé ou sans objet, conservé pour la traçabilité."],["Fichier maître","Version numérique de référence, conservée à l'emplacement officiel ; seule elle fait foi."],["Administrateur documentaire","Fonction qui tient le registre, codifie, enregistre, diffuse, archive et élimine. Assurée par le Responsable qualité."],["FP / PR / IT","Fiche processus (niveau 1) / Procédure (niveau 2 : qui fait quoi) / Instruction de travail (niveau 3 : comment faire)."],["FO / EN","Formulaire vierge / Enregistrement."],["SMI","Système de management intégré (qualité, santé et sécurité, environnement)."]]},
+      {"id":"b6","type":"tableau","colonnes":["Terme / Sigle","Définition"],"lignes":[["Offre","Proposition chiffrée adressée au client ; elle n'engage l'organisation qu'après validation (étape 5)."],["Commande","Accord du client sur une offre : quantités, prix, délai et conditions de paiement."],["Date promise","Date de livraison annoncée au client dans l'accusé de réception de sa commande."],["Bon de livraison","Document qui accompagne la marchandise et que le client signe à la réception."],["Réserves","Remarques écrites du client ou de la Direction qui conditionnent l'acceptation d'une offre ou d'une livraison."],["Litige","Désaccord persistant avec un client, traité par la Direction hors de cette procédure."],["FP / PR / IT","Fiche processus (niveau 1) / Procédure (niveau 2 : qui fait quoi) / Instruction de travail (niveau 3 : comment faire)."],["FO / EN","Formulaire vierge / Enregistrement."]]},
     ],
     responsabilites: [
       {"id":"b7","type":"p","texte":"Les rôles ci-dessous correspondent aux couloirs du logigramme (section 7)."},
       {"id":"b8","type":"genere"},
-      {"id":"b9","type":"p","texte":"L'appui méthodologique du prestataire (cohérence avec le modèle standard) intervient avant la vérification ; il ne remplace ni l'approbation, ni la propriété des documents, qui restent à l'organisation."},
+      {"id":"b9","type":"p","texte":"Le Responsable commercial pilote la procédure : il suit les indicateurs, anime la revue annuelle et propose les évolutions à la Direction."},
     ],
     description: [
       {"id":"b11","type":"genere"},
-      {"id":"b12","type":"p","texte":"6.1 Codification et versions"},
-      {"id":"b13","type":"p","texte":"Chaque document porte un code TYPE-PROCESSUS-NN : type FP (fiche processus), PR (procédure), IT (instruction de travail), FO (formulaire vierge) ou EN (enregistrement) ; code processus de la cartographie (PIL, QUA, COM, REA, LIV, RHU, ACH, MAI, FIN, SIN, JUR) ; numéro d'ordre à deux chiffres. Seul le Responsable qualité attribue un code, après vérification au registre EN-QUA-01. Un formulaire rempli est un enregistrement : il garde le code de son formulaire (FO)."},
-      {"id":"b17","type":"p","texte":"V0 : projet non approuvé, marqué « brouillon, non applicable », quel que soit le nombre d'itérations. V1 : première version approuvée et diffusée, applicable dès sa date d'approbation. V2, V3… : révision, qui repasse par la vérification et l'approbation (étapes 2 à 7)."},
-      {"id":"b18","type":"p","texte":"6.2 Documents numériques et externes"},
-      {"id":"b19","type":"p","texte":"Les fichiers maîtres sont conservés à un emplacement officiel unique (lecteur partagé du serveur de l'organisation) ; le format modifiable n'est jamais diffusé. L'écriture est réservée au Responsable qualité et aux pilotes sur leur périmètre ; les versions approuvées sont en lecture seule. L'emplacement est sauvegardé périodiquement et la restauration testée (fréquence et responsable fixés par l'organisation)."},
-      {"id":"b21","type":"p","texte":"Les textes réglementaires, normes et exigences contractuelles utilisés sont recensés dans la liste de veille EN-QUA-03, avec leur date de dernière vérification, en cohérence avec la veille du Juridique (JUR). Ils ne sont jamais modifiés ; toute évolution déclenche l'étape 9 pour les documents internes concernés."},
-      {"id":"b22","type":"p","texte":"6.3 Copies papier et documents obsolètes"},
-      {"id":"b23","type":"p","texte":"Les copies papier en service sont rangées dans les armoires des responsables concernés ; le Responsable qualité en tient la liste et les remplace à chaque nouvelle version : toute copie absente de cette liste est non maîtrisée. Une version remplacée est retirée de tous les points d'accès dès la diffusion de la nouvelle, marquée « obsolète » et archivée à part."},
+      {"id":"b12","type":"p","texte":"6.1 Numérotation et délais"},
+      {"id":"b13","type":"p","texte":"Chaque commande porte un numéro unique attribué à l'enregistrement (étape 6) ; il figure sur l'accusé de réception, le bon de livraison et la facture. Une offre est valable 30 jours ; passé ce délai, elle est reprise à l'étape 2. La date promise tient compte du stock réservé et du délai de transport."},
+      {"id":"b17","type":"p","texte":"Seuils de validation : une commande dont le montant dépasse la limite de délégation, ou dont les conditions s'écartent des conditions générales de vente, passe par la Direction (étape 5). Les autres commandes sont validées par le Responsable logistique à l'étape 3."},
+      {"id":"b18","type":"p","texte":"6.2 Livraison et preuves"},
+      {"id":"b19","type":"p","texte":"Le bon de livraison est signé par le client à la réception ; toute réserve y est portée par écrit. Un exemplaire signé est rendu au Responsable logistique, qui le classe au dossier de la commande. Les livraisons partielles sont suivies sur la même commande : le solde reste ouvert jusqu'à la dernière expédition."},
+      {"id":"b21","type":"p","texte":"Les dossiers sont conservés dans un emplacement unique (lecteur partagé de l'organisation) ; l'écriture est réservée aux personnes concernées par la commande. L'emplacement est sauvegardé périodiquement et la restauration testée."},
+      {"id":"b22","type":"p","texte":"6.3 Réclamations et litiges"},
+      {"id":"b23","type":"p","texte":"Toute réclamation reçue est tracée à l'étape 9 et reçoit une réponse sous 5 jours ouvrés. Une demande de modification donne lieu à une nouvelle offre (étape 2). Un désaccord qui persiste est un litige : il est transmis à la Direction, qui le traite hors de cette procédure."},
     ],
     logigramme: [
-      {"id":"b24","type":"p","texte":"Cycle de vie d'une information documentée (niveau 2). La légende des symboles figure dans le Guide de rédaction IT-QUA-01."},
+      {"id":"b24","type":"p","texte":"Cycle de traitement d'une commande client (niveau 2). La légende des symboles figure dans le guide de rédaction de l'organisation."},
     ],
     indicateurs: [
-      {"id":"b27","type":"tableau","colonnes":["Indicateur","Mode de calcul","Cible","Fréquence"],"lignes":[["Taux de documents revus dans l'année","Documents revus (décision tracée) / documents en vigueur × 100 (EN-QUA-01)","Suivi en année 1","Annuelle"],["Délai moyen de mise à disposition","Moyenne (date de diffusion − date du projet V0), EN-QUA-01 et 02","≤ 30 jours calendaires","Semestrielle"]]},
+      {"id":"b27","type":"tableau","colonnes":["Indicateur","Mode de calcul","Cible","Fréquence"],"lignes":[["Taux de commandes livrées dans le délai promis","Commandes livrées à la date promise / commandes livrées × 100 (EN-VEN-01 et 02)","≥ 95 %","Mensuelle"],["Délai moyen de traitement","Moyenne (date d'expédition − date de réception de la commande), EN-VEN-01","≤ 3 jours ouvrés","Mensuelle"]]},
       {"id":"b27g","type":"genere"},
     ],
     risques: [
-      {"id":"b28","type":"p","texte":"Criticité = gravité × probabilité (1 à 4 chacune), selon le Guide de rédaction IT-QUA-01."},
+      {"id":"b28","type":"p","texte":"Criticité = gravité × probabilité (1 à 4 chacune), selon le guide de rédaction de l'organisation."},
       {"id":"b28g","type":"genere"},
-      {"id":"b29","type":"tableau","colonnes":["Risque associé","Mesure de maîtrise","Acteur responsable"],"lignes":[["Perte de savoir au départ d'un pilote ou du Responsable qualité\nInstructions 1 à 10 · criticité 3 × 2 = 6","Suppléant désigné et formé pour chaque fonction","Direction"]]},
+      {"id":"b29","type":"tableau","colonnes":["Risque associé","Mesure de maîtrise","Acteur responsable"],"lignes":[["Perte de savoir au départ d'une personne clé\nInstructions 1 à 10 · criticité 3 × 2 = 6","Suppléant désigné et formé pour chaque fonction","Direction"]]},
     ],
     enregistrements: [
-      {"id":"b30","type":"tableau","colonnes":["Nom du document","Support","Durée de conservation","Lieu d'archivage"],"lignes":[["EN-QUA-01 — Registre des documents maîtrisés","Numérique (serveur), classeur en secours","Durée de vie du système documentaire","Lecteur partagé qualité"],["EN-QUA-02 — Registre de diffusion et preuves (émargements)","Numérique et papier","5 ans après remplacement du document","Lecteur partagé qualité"],["EN-QUA-03 — Liste de veille des documents externes","Numérique","Durée de vie du système documentaire","Lecteur partagé qualité"],["FO-XXX-NN — Formulaires remplis","Papier ou numérique","Exigence réglementaire ou contractuelle, 3 ans minimum","Armoires du service, serveur"],["Documents obsolètes","Papier ou numérique","Obligation légale ; si inconnue, aucune élimination","Salle des archives"]]},
+      {"id":"b30","type":"tableau","colonnes":["Nom du document","Support","Durée de conservation","Lieu d'archivage"],"lignes":[["EN-VEN-01 — Registre des commandes","Numérique (logiciel de gestion), export en secours","10 ans après clôture","Lecteur partagé ventes"],["EN-VEN-02 — Bons de livraison signés","Numérique et papier","10 ans après livraison","Lecteur partagé ventes"],["FO-XXX-NN — Offres et commandes signées","Papier ou numérique","Exigence légale ou contractuelle, 5 ans minimum","Armoires du service, serveur"],["Offres sans suite","Numérique","1 an après l'expiration de l'offre","Lecteur partagé ventes"]]},
     ],
     diffusion: [
-      {"id":"b31","type":"p","texte":"Pour action : pilotes de processus, Responsable qualité, Direction. Pour information : ensemble du personnel. Diffusion en PDF sur le lecteur partagé, avec sensibilisation des pilotes ; le format modifiable reste au système documentaire."},
+      {"id":"b31","type":"p","texte":"Pour action : chargés de clientèle, Responsable logistique, Comptable, Direction. Pour information : ensemble du personnel. Diffusion en PDF sur le lecteur partagé, avec sensibilisation des équipes concernées."},
     ],
   };
   return p;

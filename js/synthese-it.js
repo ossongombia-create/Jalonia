@@ -8,6 +8,7 @@ import { t, nombre } from "./i18n.js";
 import * as store from "./store.js";
 import { verifierIT, MIN_OPERATIONS, MAX_OPERATIONS } from "./rules-it.js";
 import { constatsDessinIT } from "./diagnostic.js";
+import { constatsQuestionnement, questionnement, sansDoublons } from "./questionnement.js";
 import { taillePointsNiveau3, SEUIL_PT_IT } from "./render3.js";
 import { carteAvec } from "./cartes.js";
 
@@ -32,7 +33,8 @@ export function rendreSyntheseIT(zone, allerA) {
   const m = p.meta;
   const it = p.it;
   const ops = it.operations;
-  const constats = [...verifierIT(p), ...constatsDessinIT(p)];
+  const constats = [...sansDoublons(verifierIT(p), p), ...constatsQuestionnement(p), ...constatsDessinIT(p)];
+  const questions = questionnement(p);
   const bloquants = constats.filter((c) => c.gravite === "erreur");
   const attention = constats.filter((c) => c.gravite === "alerte");
   const pt = taillePointsNiveau3(p);
@@ -75,7 +77,9 @@ export function rendreSyntheseIT(zone, allerA) {
     bloc("check", t("synth.conformite"), 0, allerA,
       h("ul", { class: "indicateurs-synth" },
         h("li", { class: classeOps }, t("synth.it.indic.operations", { n: ops.length, min: MIN_OPERATIONS, max: MAX_OPERATIONS })),
-        pt !== null ? h("li", { class: pt >= SEUIL_PT_IT ? "ok" : "alerte" }, t("synth.it.indic.pt", { pt: nombre(pt), seuil: nombre(SEUIL_PT_IT) })) : null),
+        pt !== null ? h("li", { class: pt >= SEUIL_PT_IT ? "ok" : "alerte" }, t("synth.it.indic.pt", { pt: nombre(pt), seuil: nombre(SEUIL_PT_IT) })) : null,
+        // Le questionnement en 11 points : une seule ligne, et seulement quand tout est respecté ; sinon, les points manquants sont dans les listes ci-dessous.
+        questions.respectes ? h("li", { class: "ok" }, t("synth.indic.questionnement.instruction", { n: questions.unites })) : null),
       bloquants.length
         ? h("div", { class: "liste-bloquants" }, h("strong", {}, t("synth.bloquants")), h("ul", {}, ...bloquants.map((c) => h("li", { class: "erreur" }, t(c.cle, c.params)))))
         : h("p", { class: "aide ok" }, t("synth.conforme")),

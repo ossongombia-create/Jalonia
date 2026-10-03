@@ -115,7 +115,7 @@ const texteCss = (texte) => `"${String(texte).replace(/[\\"]/g, "\\$&").replace(
 function stylePied(pied) {
   const style = document.createElement("style");
   style.id = "style-pied-impression";
-  style.textContent = `@page { @bottom-center { content: ${pied ? texteCss(pied + " · ") + " " : ""}counter(page) " / " counter(pages); font: 7.5pt Calibri, Carlito, Arial, sans-serif; color: #4A5568; } }`;
+  style.textContent = `@page { @bottom-center { content: ${pied ? texteCss(pied + " · ") + " " : ""}counter(page) " / " counter(pages); font: 7.5pt Calibri, Carlito, Arial, sans-serif; color: #4E5A63; } }`;
   return style;
 }
 
