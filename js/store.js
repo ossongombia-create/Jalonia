@@ -3,8 +3,8 @@
 // modification, tous les « abonnés » (le dessin, le diagnostic…) sont prévenus et se mettent à jour.
 
 import {
-  nouvelleProcedure, nouvelleEtape, nouveauBloc, nouveauCorps, nouveauRisque, nouvelleAlternative, nouvelleRevision, nouvelId, signatureContenu,
-  TYPES_OUTIL, TYPES_DOCUMENT, SECTIONS, MAX_BLOCS, MAX_LIGNES, MAX_COLONNES, MAX_RISQUES, MAX_ALTERNATIVES, NATURES_CONTROLE,
+  nouvelleProcedure, nouvelleEtape, nouveauBloc, nouveauCorps, nouveauRisque, nouvelleOpportunite, nouvelleAlternative, nouvelleRevision, nouvelId, signatureContenu,
+  TYPES_OUTIL, TYPES_DOCUMENT, SECTIONS, MAX_BLOCS, MAX_LIGNES, MAX_COLONNES, MAX_RISQUES, MAX_OPPORTUNITES, MAX_ALTERNATIVES, NATURES_CONTROLE,
   domaineValide, SIGNATAIRES, MAX_REVISIONS, OPERATEURS, NATURES_CONTRAINTE, LOGO_MAX_OCTETS, LETTRES_RACI, LETTRES_RACI_AUTRES, lettreRaci,
   TYPES_MACRO, MAX_ALTERNATIVES_MACRO,
   nouvelleInstruction, nouvelleOperation, nouveauControle, nouvelleCorrective, MAX_OPERATIONS_SAISIE, MAX_CONTROLES, MAX_CORRECTIVES,
@@ -400,6 +400,43 @@ export function supprimerRisque(etapeId, risqueId) {
   if (!etape) return;
   avant();
   etape.risques = etape.risques.filter((r) => r.id !== risqueId);
+  apres(true);
+}
+
+// ---------- Opportunités d'amélioration portées par une instruction (v0.28 ; section 9) ----------
+const CHAMPS_OPPORTUNITE = ["opportunite", "benefice", "interet", "faisabilite"];
+
+export function basculerOpportunites(etapeId, actif) {
+  const etape = etapeDe(etapeId);
+  if (!etape) return;
+  avant();
+  etape.opportunites = actif ? (etape.opportunites && etape.opportunites.length ? etape.opportunites : [nouvelleOpportunite()]) : [];
+  apres(true);
+}
+
+export function ajouterOpportunite(etapeId) {
+  const etape = etapeDe(etapeId);
+  if (!etape || (etape.opportunites && etape.opportunites.length >= MAX_OPPORTUNITES)) return;
+  avant();
+  (etape.opportunites = etape.opportunites || []).push(nouvelleOpportunite());
+  apres(true);
+}
+
+export function modifierOpportunite(etapeId, oppId, champ, valeur) {
+  const etape = etapeDe(etapeId);
+  const opp = etape && (etape.opportunites || []).find((o) => o.id === oppId);
+  if (!opp || !CHAMPS_OPPORTUNITE.includes(champ)) return;
+  if ((champ === "interet" || champ === "faisabilite") && !["", "1", "2", "3"].includes(valeur)) return;
+  avant("opp:" + oppId + champ);
+  opp[champ] = valeur;
+  apres(champ === "interet" || champ === "faisabilite"); // le score affiché dépend de ces deux champs
+}
+
+export function supprimerOpportunite(etapeId, oppId) {
+  const etape = etapeDe(etapeId);
+  if (!etape) return;
+  avant();
+  etape.opportunites = (etape.opportunites || []).filter((o) => o.id !== oppId);
   apres(true);
 }
 
@@ -881,6 +918,7 @@ export function dupliquerEtape(id) {
   const copieEtape = { ...copie(procedure.etapes[i]), id: nouvelId("e") };
   copieEtape.outils = copieEtape.outils.map((o) => ({ ...o, id: nouvelId("o") }));
   copieEtape.risques = copieEtape.risques.map((r) => ({ ...r, id: nouvelId("k") }));
+  copieEtape.opportunites = (copieEtape.opportunites || []).map((o) => ({ ...o, id: nouvelId("o") }));
   copieEtape.alternatives = copieEtape.alternatives.map((a) => ({ ...a, id: nouvelId("a") }));
   procedure.etapes.splice(i + 1, 0, copieEtape);
   apres(true);
@@ -1077,6 +1115,25 @@ function nettoyerRisques(brut) {
   return propres;
 }
 
+// v0.28 : opportunités (intérêt × faisabilité, cotées 1 à 3).
+function nettoyerOpportunites(brut) {
+  if (!Array.isArray(brut)) return [];
+  const vus = new Set();
+  const propres = [];
+  brut.slice(0, MAX_OPPORTUNITES).forEach((o) => {
+    if (!o || typeof o !== "object") return;
+    let id = idPropre(o.id);
+    if (!id || vus.has(id)) id = nouvelId("o");
+    vus.add(id);
+    const cote = (v) => (["1", "2", "3"].includes(String(v)) ? String(v) : "");
+    propres.push({
+      id, opportunite: texteCourt(o.opportunite, 500), benefice: texteCourt(o.benefice, 500),
+      interet: cote(o.interet), faisabilite: cote(o.faisabilite),
+    });
+  });
+  return propres;
+}
+
 function nettoyerControle(brut) {
   const c = brut && typeof brut === "object" ? brut : {};
   return {
@@ -1258,6 +1315,7 @@ export function nettoyer(brut) {
       participants: Array.isArray(e.participants) ? e.participants.filter((p) => idsRoles.has(p) && p !== e.roleId).slice(0, 10) : [],
       outils: nettoyerOutils(e.outils),
       risques: nettoyerRisques(e.risques),
+      opportunites: nettoyerOpportunites(e.opportunites),
       niveau3: nettoyerNiveau3(e.niveau3),
       controle: nettoyerControle(e.controle),
       condition: texteCourt(e.condition, 200),

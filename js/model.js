@@ -48,6 +48,7 @@ export const TYPES_DOCUMENT = ["procedure", "instruction"];
 
 // Limites (protègent contre un document démesuré et gardent le document dans 4 à 5 pages).
 export const MAX_RISQUES = 5; // risques maîtrisés par une même instruction
+export const MAX_OPPORTUNITES = 5; // opportunités d'amélioration portées par une même instruction (v0.28)
 export const MAX_BLOCS = 30;
 export const MAX_LIGNES = 60;
 export const MAX_COLONNES = 8;
@@ -123,7 +124,8 @@ export function nouvelleEtape(champs = {}) {
     raci: {},
     informes: [], // noms libres (texte) d'informés qui ne sont pas des rôles de la procédure, affichés dans le tableau seulement
     outils: [], // outils utilisés : { id, type: "document" | "materiel", nom } (livre : reliés en pointillé)
-    risques: [], // risques que l'instruction permet de maîtriser : alimentent la section 10 du document
+    risques: [], // risques que l'instruction permet de maîtriser : alimentent la section 9 du document
+    opportunites: [], // opportunités d'amélioration portées par l'instruction (v0.28) : intérêt × faisabilité ; section 9
     niveau3: { actif: false, code: "", intitule: "" }, // l'instruction fait l'objet d'une instruction de travail (zoom niveau 3)
     // Contrôle (triangle Q/H/S/R/E en haut à droite de l'instruction) : alimente la section 8 du document.
     controle: { actif: false, nature: "", critere: "", enregistrement: "" },
@@ -278,18 +280,36 @@ export function nouvelleAlternative(champs = {}) {
   return { id: nouvelId("a"), condition: "", info: "", versQui: "", vers: "", ...champs };
 }
 
-// Un risque maîtrisé par une instruction. Gravité et probabilité : 1 à 4 (fiche de collecte) ; criticité = G × P.
+// Un risque maîtrisé par une instruction. Impact et vraisemblance : 1 à 4 ; criticité = Impact × Vraisemblance.
+// NB : les champs de données restent nommés `gravite` et `probabilite` (compatibilité des fichiers enregistrés et de la
+// signature de validation) ; seuls les LIBELLÉS affichés changent (Impact / Vraisemblance), via i18n (v0.28).
 export function nouveauRisque(champs = {}) {
   return { id: nouvelId("k"), risque: "", causes: "", gravite: "", probabilite: "", mesure: "", ...champs };
 }
 
-// Criticité = gravité × probabilité (seuils de la fiche : 1-3 acceptable, 4-8 à surveiller, 9-16 inacceptable).
+// Criticité = Impact (g) × Vraisemblance (p). Décision (v0.28, méthode de management des processus / ISO 9001 §6.1) :
+//   critique si C ≥ 9 OU Impact = 4 (tout impact 4 déclenche une action, quelle que soit la vraisemblance) ;
+//   significatif si 5 ≤ C ≤ 8 ; acceptable si C ≤ 4.
 export function criticite(risque) {
   const g = Number(risque.gravite);
   const p = Number(risque.probabilite);
   if (!(g >= 1 && g <= 4 && p >= 1 && p <= 4)) return null;
   const valeur = g * p;
-  return { valeur, g, p, niveau: valeur <= 3 ? "acceptable" : valeur <= 8 ? "surveiller" : "inacceptable" };
+  const niveau = (g === 4 || valeur >= 9) ? "critique" : valeur >= 5 ? "significatif" : "acceptable";
+  return { valeur, g, p, niveau };
+}
+
+// Une opportunité d'amélioration portée par une instruction (v0.28). Cotation : intérêt × faisabilité, 1 à 3 chacun.
+// Impact « positif » (par opposition au risque) ; le score oriente la suite : ≥ 6 → plan d'amélioration, sinon à étudier.
+export function nouvelleOpportunite(champs = {}) {
+  return { id: nouvelId("o"), opportunite: "", benefice: "", interet: "", faisabilite: "", ...champs };
+}
+export function scoreOpportunite(opp) {
+  const i = Number(opp.interet);
+  const f = Number(opp.faisabilite);
+  if (!(i >= 1 && i <= 3 && f >= 1 && f <= 3)) return null;
+  const valeur = i * f;
+  return { valeur, i, f, suite: valeur >= 6 ? "plan" : "etudier" };
 }
 
 // Empreinte du contenu (identification, rôles, instructions, corps), indépendante de l'ordre des clés :
@@ -310,6 +330,7 @@ export function signatureContenu(p) {
     contrat: (v) => !v || (!v.actif && !v.reference), // v0.19 : un fichier d'avant garde sa signature
     sousProcedure: (v) => !v || (!v.actif && !v.code),
     macro: (v) => !v || (!v.type && !v.detail && !(v.alternatives || []).length),
+    opportunites: (v) => !v || v.length === 0, // v0.28 : pas d'opportunité = champ absent de la signature (fichier validé avant reste validé)
   };
   // v0.19 : formule, cible et fréquence de l'indicateur n'entrent dans la signature que si elles sont renseignées.
   const sansChampsIndicateurVides = (k, v) => (k === "indicateur" && v ? Object.fromEntries(Object.entries(v).filter(([c, x]) => !(["formule", "cible", "frequence"].includes(c) && !x))) : v);

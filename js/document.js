@@ -7,7 +7,7 @@
 // Chaque section contient une liste de « blocs » (paragraphe, sous-titre, tableau, logigramme). Les sections 5, 6 et 9
 // sont construites à partir des rôles, des instructions et des risques maîtrisés.
 
-import { SECTIONS, MODELES_TABLEAU, criticite, LETTRES_RACI, lettreRaci, raciDuRole, raciUtilise, partiesDeLaFleche } from "./model.js";
+import { SECTIONS, MODELES_TABLEAU, criticite, scoreOpportunite, LETTRES_RACI, lettreRaci, raciDuRole, raciUtilise, partiesDeLaFleche } from "./model.js";
 import { t } from "./i18n.js";
 
 export { SECTIONS };
@@ -40,6 +40,17 @@ export function listeRisques(procedure) {
   procedure.etapes.forEach((e, i) => {
     e.risques.filter((r) => r.risque.trim() || r.mesure.trim()).forEach((r) => {
       liste.push({ n: i + 1, etape: e, risque: r, criticite: criticite(r), responsable: nomRoleDe(procedure, e.roleId) });
+    });
+  });
+  return liste;
+}
+
+// Opportunités d'amélioration portées par les instructions (v0.28) : une entrée par opportunité renseignée.
+export function listeOpportunites(procedure) {
+  const liste = [];
+  procedure.etapes.forEach((e, i) => {
+    (e.opportunites || []).filter((o) => o.opportunite.trim()).forEach((o) => {
+      liste.push({ n: i + 1, etape: e, opportunite: o, score: scoreOpportunite(o) });
     });
   });
   return liste;
@@ -218,9 +229,22 @@ function tableauRisques(procedure) {
     lignes: listeRisques(procedure).map(({ n, risque, criticite: c, responsable }) => [
       lignesNonVides([
         risque.risque,
-        `${t("doc.instruction")} ${n}${c ? ` · ${t("doc.criticite")} ${c.g} × ${c.p} = ${c.valeur}` : ""}`,
+        `${t("doc.instruction")} ${n}${c ? ` · ${t("doc.criticite")} ${c.g} × ${c.p} = ${c.valeur} (${t("risque.niveau." + c.niveau)})` : ""}`,
       ]).join("\n"),
       risque.mesure, responsable,
+    ].map(cellule)),
+  };
+}
+
+// 9bis. Opportunités d'amélioration (v0.28) : Opportunité | Intérêt × faisabilité | Suite
+function tableauOpportunites(procedure) {
+  return {
+    type: "tableau", gabarit: GABARITS.opportunites, gras1: [0],
+    colonnes: ["opportunite", "cotation", "suite"].map((k) => t("col.opportunites." + k)),
+    lignes: listeOpportunites(procedure).map(({ n, opportunite: o, score: s }) => [
+      lignesNonVides([o.opportunite, `${t("doc.instruction")} ${n}`, o.benefice]).join("\n"),
+      s ? `${s.i} × ${s.f} = ${s.valeur}` : "",
+      s ? t("opportunite.suite." + s.suite) : "",
     ].map(cellule)),
   };
 }
@@ -234,6 +258,7 @@ export const GABARITS = {
   description: [700, 4200, 2200, 2100],
   indicateurs: [2400, 3800, 1700, 1300],
   risques: [3600, 3800, 1800],
+  opportunites: [5000, 2200, 2000],
   enregistrements: [2800, 1700, 2700, 2000],
   entete: [2600, 4200, 2400],
   validation: [2300, 2300, 2300, 2300],
@@ -258,7 +283,13 @@ function blocsSection(cle, procedure) {
       sortie.push(tableauResponsabilites(procedure));
       if (raciUtilise(procedure)) sortie.push({ type: "paragraphe", texte: t("doc.raci.legende") });
     }
-    else if (b.type === "genere" && cle === "risques") sortie.push(tableauRisques(procedure));
+    else if (b.type === "genere" && cle === "risques") {
+      sortie.push(tableauRisques(procedure));
+      if (listeOpportunites(procedure).length) {
+        sortie.push({ type: "paragraphe", texte: t("doc.opportunites.sous_titre") });
+        sortie.push(tableauOpportunites(procedure));
+      }
+    }
     else if (b.type === "genere" && cle === "indicateurs") sortie.push(tableauIndicateurs(procedure));
     else if (b.type === "genere" && cle === "description") {
       const raccord = (r, cle) => (r && r.texte.trim() ? { type: "paragraphe", texte: `${t(cle)} : ${r.texte.trim()}${r.role.trim() ? ` (${r.role.trim()})` : ""}${(r.information || "").trim() ? ` — ${t("doc.raccord.information")} : ${r.information.trim()}` : ""}` } : null);

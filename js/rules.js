@@ -71,6 +71,7 @@ export function verifier(procedure, { nomenclature = NOMENCLATURE_SUPPOSEE } = {
 
     // Risque maîtrisé : le risque et sa mesure de maîtrise alimentent la section 10 du document.
     if (etape.risques.some((r) => !r.risque.trim() || !r.mesure.trim())) ajouter("alerte", "regle.risque.incomplet", { i });
+    if ((etape.opportunites || []).some((o) => !o.opportunite.trim())) ajouter("alerte", "regle.opportunite.incomplet", { i });
     // Indicateur de performance (fanion) : il doit avoir un nom, repris dans le document.
     if (etape.indicateur && etape.indicateur.actif && !etape.indicateur.nom.trim()) ajouter("alerte", "regle.indicateur.sans_nom", { i });
     // … et sa formule, sa cible et sa fréquence alimentent la section 8 : sans elles, la ligne du tableau reste à moitié vide.

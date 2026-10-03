@@ -319,8 +319,11 @@ button.lien { border: 0 !important; background: none !important; padding: 0 !imp
 .ajout-bloc button, .tableau-edition > button, .titres-colonnes button:not(.suppr), .outils button:not(.suppr) { font-size: .85rem; }
 .criticite { display: inline-block; padding: 4px 10px; font-size: .78rem; font-weight: 700; border: 1px solid var(--trait); border-radius: 999px; }
 .criticite.acceptable { background: #e3f1e6; border-color: var(--ok-vif); }
-.criticite.surveiller { background: #fdf0d5; border-color: #d19a1e; }
-.criticite.inacceptable { background: #f9dcda; border-color: var(--erreur); }
+.criticite.significatif { background: #fdf0d5; border-color: #d19a1e; }
+.criticite.critique { background: #f9dcda; border-color: var(--erreur); }
+.score-opp { display: inline-block; padding: 4px 10px; font-size: .78rem; font-weight: 700; border: 1px solid var(--trait); border-radius: 999px; }
+.score-opp.plan { background: #e7eefb; border-color: var(--sarcelle); }
+.score-opp.etudier { background: var(--fond-liste); border-color: var(--trait); }
 .apercu-logo { display: block; max-width: 180px; max-height: 70px; margin: 6px 0; border: 1px solid var(--trait); border-radius: 8px; background: #fff; }
 .tab-entete .logo-entete { display: block; margin: 0 auto 3px; max-width: 120px; max-height: 40px; }
 .zone-sections { margin-top: 0; }

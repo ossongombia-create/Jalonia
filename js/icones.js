@@ -31,6 +31,7 @@ const DESSINS = {
   loop: P("M20 12a8 8 0 0 1-14 5.3") + P("M4 12a8 8 0 0 1 14-5.3") + P("M18 3v4h-4") + P("M6 21v-4h4"),
   contrat: P("M7 3h7l4 4v14H7z") + P("M14 3v4h4") + P("M10 11h5") + P("M10 14.5h5") + P("M10 18h3"),
   flag: P("M6 21V4") + P("M6 5h11l-2.5 4 2.5 4H6"),
+  bulb: P("M9 18h6") + P("M10 21h4") + P("M12 3a6 6 0 0 0-3.8 10.7c.5.4.8 1 .8 1.6v.7h6v-.7c0-.6.3-1.2.8-1.6A6 6 0 0 0 12 3z"),
   macro: `<rect x="4" y="4" width="16" height="16" rx="2"/>` + `<rect x="7.5" y="7.5" width="9" height="9" rx="1"/>`,
   subp: `<rect x="3.5" y="6" width="17" height="12" rx="2"/>` + P("M7 6v12") + P("M17 6v12"),
   layers: P("m12 3 9 5-9 5-9-5z") + P("m3 13 9 5 9-5"),

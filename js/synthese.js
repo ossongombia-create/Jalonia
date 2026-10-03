@@ -11,7 +11,7 @@ import { verifierCodes } from "./rules-codes.js";
 import { lire as lireCartographie } from "./cartographie-store.js";
 import { taillePointsSurA4, croisementsNiveau2, SEUIL_PT } from "./render.js";
 import { constatsLisibilite } from "./conseils.js";
-import { construireDocument, estimerPages, verifierLongueur, listeRisques, listeNiveau3, listeControles, listeDecisions, PAGES_MAX, PAGES_CIBLE_MIN } from "./document.js";
+import { construireDocument, estimerPages, verifierLongueur, listeRisques, listeOpportunites, listeNiveau3, listeControles, listeDecisions, PAGES_MAX, PAGES_CIBLE_MIN } from "./document.js";
 import { bloquantsSynthese, estValidee } from "./parcours.js";
 import { constatsQuestionnement, questionnement, sansDoublons } from "./questionnement.js";
 import { carteAvec, pointRole } from "./cartes.js";
@@ -57,6 +57,7 @@ export function rendreSynthese(zone, allerA) {
   const pages = estimerPages(doc);
   const nomRole = (id) => (p.roles.find((r) => r.id === id) || { nom: "" }).nom;
   const risques = listeRisques(p);
+  const opportunites = listeOpportunites(p);
   const n3 = listeNiveau3(p);
   const controles = listeControles(p);
   const decisions = listeDecisions(p);
@@ -108,6 +109,15 @@ export function rendreSynthese(zone, allerA) {
             tiret(risque.mesure), tiret(responsable),
           ]))
         : h("p", { class: "aide" }, t("synth.risques.aucun"))),
+    bloc("bulb", t("synth.opportunites", { n: opportunites.length }), 2, allerA,
+      opportunites.length
+        ? tableau(["col.opportunites.nop", "col.opportunites.opportunite", "col.opportunites.benefice", "col.opportunites.cotation", "col.opportunites.suite"].map((k) => t(k)),
+          opportunites.map(({ n, opportunite: o, score: s }) => [
+            String(n), tiret(o.opportunite), tiret(o.benefice),
+            s ? h("span", { class: "score-opp " + s.suite }, `${s.i} × ${s.f} = ${s.valeur}`) : "—",
+            s ? t("opportunite.suite." + s.suite) : "—",
+          ]))
+        : h("p", { class: "aide" }, t("synth.opportunites.aucune"))),
     bloc("tri", t("synth.controles", { n: controles.length }), 2, allerA,
       controles.length
         ? tableau(["col.controles.n", "col.controles.controle", "col.controles.nature", "col.controles.critere", "col.controles.suite"].map((k) => t(k)),

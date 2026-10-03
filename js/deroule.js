@@ -13,7 +13,7 @@ import { champ, zoneTexte, ajusterToutes } from "./formulaire.js";
 import { enregistrerJSON } from "./sorties.js";
 import { lire as lireCartographie } from "./cartographie-store.js";
 import { fluxDuProcessus, libelleProcessus, processusDuTexte } from "./cartographie.js";
-import { LETTRES_RACI, lettreRaci, TYPES_MACRO, MAX_ALTERNATIVES_MACRO, TYPES_OUTIL, partiesDeLaFleche, MAX_RISQUES, MAX_ALTERNATIVES, NATURES_CONTROLE, NATURES_CONTRAINTE, OPERATEURS, criticite } from "./model.js";
+import { LETTRES_RACI, lettreRaci, TYPES_MACRO, MAX_ALTERNATIVES_MACRO, TYPES_OUTIL, partiesDeLaFleche, MAX_RISQUES, MAX_OPPORTUNITES, MAX_ALTERNATIVES, NATURES_CONTROLE, NATURES_CONTRAINTE, OPERATEURS, criticite, scoreOpportunite } from "./model.js";
 
 // ---------- État de l'écran ----------
 let vue = null; // { type: "roles" | "debut" | "instruction" | "fin", id? }
@@ -344,6 +344,9 @@ function listeParticularites(p, e) {
     { cle: "risques", icone: "warn", aide: "form.risque.case", actif: e.risques.length > 0,
       bascule: (v) => basculerRisques(e, v),
       detail: () => detail("risques", "warn", detailRisques(e), () => basculerRisques(e, false), "large") },
+    { cle: "opportunite", icone: "bulb", aide: "form.opportunite.case", actif: (e.opportunites || []).length > 0,
+      bascule: (v) => basculerOpportunites(e, v),
+      detail: () => detail("opportunite", "bulb", detailOpportunites(e), () => basculerOpportunites(e, false), "large") },
     { cle: "niveau3", icone: "layers", aide: "form.n3.case", actif: e.niveau3.actif,
       bascule: (v) => store.modifierNiveau3(e.id, "actif", v),
       detail: () => detail("niveau3", "layers", detailNiveau3(e), () => store.modifierNiveau3(e.id, "actif", false)) },
@@ -391,6 +394,14 @@ function basculerRisques(e, actif) {
     if (!confirm(t("form.risque.confirmer"))) return;
   }
   store.basculerRisques(e.id, actif);
+}
+
+// Opportunités : confirmation si une opportunité a déjà été saisie.
+function basculerOpportunites(e, actif) {
+  if (!actif && (e.opportunites || []).some((o) => o.opportunite.trim() || o.benefice.trim())) {
+    if (!confirm(t("form.opportunite.confirmer"))) return;
+  }
+  store.basculerOpportunites(e.id, actif);
 }
 
 function detailControle(e) {
@@ -595,5 +606,33 @@ function detailRisques(e) {
     ...cartes,
     e.risques.length < MAX_RISQUES
       ? h("div", {}, h("button", { type: "button", class: "discret", onclick: () => store.ajouterRisque(e.id) }, t("form.risque.ajouter"))) : null,
+  ];
+}
+
+// Opportunités d'amélioration : intitulé + bénéfice, cotées intérêt × faisabilité → section 9 (v0.28).
+function detailOpportunites(e) {
+  const liste = e.opportunites || [];
+  const cartes = liste.map((o, k) => {
+    const cote = (nom, valeur) => {
+      const sel = h("select", { "aria-label": t("form.opportunite." + nom) },
+        h("option", { value: "" }, t("form.cote.choisir")),
+        ...["1", "2", "3"].map((v) => h("option", { value: v, selected: valeur === v }, v)));
+      sel.addEventListener("change", () => store.modifierOpportunite(e.id, o.id, nom, sel.value));
+      return h("label", { class: "champ" }, h("span", {}, t("form.opportunite." + nom)), sel);
+    };
+    const s = scoreOpportunite(o);
+    return h("div", { class: "sous-carte" },
+      h("div", { class: "entete-sous" }, h("strong", {}, t("form.opportunite.n", { n: k + 1 })),
+        boutonIcone("trash", t("form.supprimer"), () => store.supprimerOpportunite(e.id, o.id), { classe: "suppr" })),
+      champ(t("form.opportunite.opportunite"), o.opportunite, (v) => store.modifierOpportunite(e.id, o.id, "opportunite", v), { requis: true, placeholder: t("form.opportunite.opportunite.ph") }),
+      champ(t("form.opportunite.benefice"), o.benefice, (v) => store.modifierOpportunite(e.id, o.id, "benefice", v), { placeholder: t("form.opportunite.benefice.ph") }),
+      h("div", { class: "cotes" }, cote("interet", o.interet), cote("faisabilite", o.faisabilite),
+        s ? h("span", { class: "score-opp " + s.suite }, t("form.opportunite.score", { i: s.i, f: s.f, v: s.valeur, suite: t("opportunite.suite." + s.suite) })) : null));
+  });
+  return [
+    h("p", { class: "aide" }, t("form.opportunite.aide")),
+    ...cartes,
+    liste.length < MAX_OPPORTUNITES
+      ? h("div", {}, h("button", { type: "button", class: "discret", onclick: () => store.ajouterOpportunite(e.id) }, t("form.opportunite.ajouter"))) : null,
   ];
 }
