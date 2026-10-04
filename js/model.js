@@ -293,7 +293,8 @@ export function nouveauRisque(champs = {}) {
 export function criticite(risque) {
   const g = Number(risque.gravite);
   const p = Number(risque.probabilite);
-  if (!(g >= 1 && g <= 4 && p >= 1 && p <= 4)) return null;
+  // Cotation = entiers 1 à 4 uniquement (une valeur non entière, ex. importée d'un fichier modifié, n'est pas une cotation valide).
+  if (!(Number.isInteger(g) && Number.isInteger(p) && g >= 1 && g <= 4 && p >= 1 && p <= 4)) return null;
   const valeur = g * p;
   const niveau = (g === 4 || valeur >= 9) ? "critique" : valeur >= 5 ? "significatif" : "acceptable";
   return { valeur, g, p, niveau };
@@ -307,7 +308,8 @@ export function nouvelleOpportunite(champs = {}) {
 export function scoreOpportunite(opp) {
   const i = Number(opp.interet);
   const f = Number(opp.faisabilite);
-  if (!(i >= 1 && i <= 3 && f >= 1 && f <= 3)) return null;
+  // Cotation = entiers 1 à 3 uniquement (cohérent avec criticite).
+  if (!(Number.isInteger(i) && Number.isInteger(f) && i >= 1 && i <= 3 && f >= 1 && f <= 3)) return null;
   const valeur = i * f;
   return { valeur, i, f, suite: valeur >= 6 ? "plan" : "etudier" };
 }
