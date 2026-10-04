@@ -12,11 +12,13 @@ import {
   CATEGORIES, EXTREMITES, FORMAT_CODE_LIBRE, FORMAT_CODE_PROCESSUS, analyserCode, codeTypeDuDocument, libelleProcessus, nomenclatureActive, processusParCategorie, documentParCode,
 } from "./cartographie.js";
 import { importerPdf } from "./cartographie-pdf.js";
+import { svgCartographie } from "./carto-dessin.js";
 
 const $ = (id) => document.getElementById(id);
 const TAILLE_MAX_PDF = 10_000_000;
 let rapport = []; // ce que la dernière lecture de PDF a compris (affiché en haut de la fenêtre)
 let focusApres = null; // l'élément à sélectionner après un redessin (ex. le code du processus qu'on vient d'ajouter)
+let apercu = false; // l'aperçu dessiné de la cartographie est-il ouvert ?
 
 export function ouvrirCartographie() {
   const fenetre = $("fenetre-carto");
@@ -86,9 +88,58 @@ function barreActions() {
     h("button", { type: "button", class: vide ? "primaire" : "", onclick: () => pdf.click() }, icone("upload", 17), t("carto.importer_pdf")),
     h("button", { type: "button", onclick: () => json.click() }, icone("folder", 17), t("carto.ouvrir")),
     h("button", { type: "button", disabled: vide, onclick: enregistrer }, icone("save", 17), t("carto.enregistrer")),
+    h("button", { type: "button", disabled: vide, class: apercu ? "primaire" : "", onclick: () => { apercu = !apercu; rendre(); } }, icone("carto", 17), t("carto.voir")),
     h("button", { type: "button", onclick: () => { if (cs.estVideMaintenant() || confirm(t("carto.confirmer_remplacer"))) { rapport = []; cs.chargerExemple(); rendre(); } } }, icone("doc", 17), t("carto.exemple")),
     h("button", { type: "button", class: "suppr", disabled: vide, onclick: () => { if (confirm(t("carto.confirmer_vider"))) { rapport = []; cs.vider(); rendre(); } } }, icone("trash", 17), t("carto.vider")),
     pdf, json);
+}
+
+// Nom de fichier à partir du nom de l'organisation.
+function baseNom(c) {
+  return (c.organisation || "cartographie").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "cartographie";
+}
+
+// Exporte le SVG de la cartographie en PNG (rasterisé à 2× via un canvas).
+function telechargerPng(svg, base) {
+  let node;
+  try { node = new DOMParser().parseFromString(svg, "image/svg+xml").documentElement; } catch (e) { return; }
+  const w = Number(node.getAttribute("width")) || 1600;
+  const hh = Number(node.getAttribute("height")) || 900;
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement("canvas");
+    cv.width = w * 2; cv.height = hh * 2;
+    const ctx = cv.getContext("2d");
+    ctx.scale(2, 2); ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, hh); ctx.drawImage(img, 0, 0, w, hh);
+    URL.revokeObjectURL(url);
+    cv.toBlob((b) => { if (b) telecharger(b, `cartographie-${base}.png`, "image/png"); }, "image/png");
+  };
+  img.onerror = () => URL.revokeObjectURL(url);
+  img.src = url;
+}
+
+// L'aperçu dessiné de la cartographie (style 09) + les boutons d'export. Le SVG est construit par carto-dessin.js (texte échappé).
+function blocApercu(c) {
+  if (!apercu || cs.estVideMaintenant()) return null;
+  const svg = svgCartographie(c);
+  const vue = h("div", { class: "carto-apercu-vue" });
+  try {
+    const node = document.importNode(new DOMParser().parseFromString(svg, "image/svg+xml").documentElement, true);
+    node.removeAttribute("width"); node.removeAttribute("height");
+    node.setAttribute("style", "width:100%;height:auto");
+    vue.appendChild(node);
+  } catch (e) { /* aperçu indisponible : on laisse la vue vide */ }
+  const base = baseNom(c);
+  return h("section", { class: "carte carto-apercu" },
+    h("div", { class: "carte-entete" },
+      h("h3", {}, t("carto.apercu.titre")),
+      h("div", { class: "carto-apercu-actions" },
+        h("button", { type: "button", onclick: () => telecharger(svg, `cartographie-${base}.svg`, "image/svg+xml") }, icone("dl", 16), t("carto.telecharger_svg")),
+        h("button", { type: "button", onclick: () => telechargerPng(svg, base) }, icone("dl", 16), t("carto.telecharger_png")),
+        h("button", { type: "button", onclick: () => { apercu = false; rendre(); } }, t("import.fermer")))),
+    h("p", { class: "aide" }, t("carto.apercu.aide")),
+    vue);
 }
 
 function blocRapport() {
@@ -271,6 +322,7 @@ export function rendre() {
   conteneur.replaceChildren(...[
     barreActions(),
     blocRapport(),
+    blocApercu(c),
     cs.estVideMaintenant() ? h("p", { class: "intro carto-vide" }, t("carto.vide")) : h("p", { class: "intro" }, t("carto.intro")),
     carteOrganisation(c), carteProcessus(c), carteFlux(c), carteNomenclature(c), carteDocuments(c),
   ].filter(Boolean));

@@ -277,6 +277,11 @@ dialog#fenetre-carto { width: min(96vw, 1020px); }
 .carto-rapport li.ok { border-color: var(--ok-vif); background: var(--ok-fond); }
 .carto-rapport li.alerte { border-color: #d19a1e; background: var(--alerte-fond); color: var(--alerte-texte); }
 .carto-rapport li.erreur { border-color: var(--erreur); background: var(--erreur-fond); color: var(--erreur-texte); }
+.carto-apercu .carte-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.carto-apercu-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.carto-apercu .aide { margin: 4px 0 10px; font-size: .82rem; color: var(--gris); }
+.carto-apercu-vue { overflow: auto; border: 1.5px solid var(--trait); border-radius: 12px; background: #fff; padding: 10px; }
+.carto-apercu-vue svg { display: block; width: 100%; height: auto; }
 .groupe-carto { margin: 10px 0 6px; }
 .groupe-carto h4 { margin: 0 0 6px; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: var(--encre-legere); }
 .ligne-carto { display: grid; gap: 8px; align-items: start; margin-bottom: 8px; }
