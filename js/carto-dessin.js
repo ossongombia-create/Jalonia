@@ -61,9 +61,13 @@ export function disposer(c) {
     const corps = lignes * CARTE_H + (lignes - 1) * LIGNE_GAP;
     const h = Math.max(90, PAD + corps + PAD);
     const couleur = COULEURS[g.categorie] || COULEURS[""];
+    const AIRE_W = COLS * CARTE_W + (COLS - 1) * COL_GAP;   // largeur d'un rang plein ; chaque rang est centré dans cette aire
     const cartes = g.processus.map((p, i) => {
       const col = i % COLS, lig = Math.floor(i / COLS);
-      const x = CARTE_X + col * (CARTE_W + COL_GAP);
+      const surCeRang = Math.min(COLS, n - lig * COLS);     // nombre de cartes sur ce rang
+      const rangW = surCeRang * CARTE_W + (surCeRang - 1) * COL_GAP;
+      const depart = CARTE_X + (AIRE_W - rangW) / 2;        // rang centré horizontalement
+      const x = depart + col * (CARTE_W + COL_GAP);
       const cy = y + PAD + lig * (CARTE_H + LIGNE_GAP);
       return { id: p.id, code: p.code, nom: p.nom || "", couleur, x, y: cy, w: CARTE_W, h: CARTE_H, cx: x + CARTE_W / 2, cyc: cy + CARTE_H / 2 };
     });
