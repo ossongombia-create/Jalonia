@@ -9,7 +9,7 @@ import * as store from "./store.js";
 import { champ, ajusterToutes } from "./formulaire.js";
 import { icone } from "./icones.js";
 import {
-  CATEGORIES, EXTREMITES, FORMAT_CODE_LIBRE, FORMAT_CODE_PROCESSUS, analyserCode, codeTypeDuDocument, libelleProcessus, nomenclatureActive, processusParCategorie, documentParCode,
+  CATEGORIES, EXTREMITES, FICHE_CHAMPS, FORMAT_CODE_LIBRE, FORMAT_CODE_PROCESSUS, analyserCode, codeTypeDuDocument, ficheProcessus, libelleProcessus, nomenclatureActive, processusParCategorie, documentParCode,
 } from "./cartographie.js";
 import { importerPdf } from "./cartographie-pdf.js";
 import { svgCartographie } from "./carto-dessin.js";
@@ -297,6 +297,46 @@ function carteFlux(c) {
     h("div", {}, h("button", { type: "button", disabled: c.processus.length === 0, onclick: () => { const id = cs.ajouterFlux(); if (id) focusApres = id; } }, icone("plus", 16, 2.2), t("carto.flux.ajouter"))));
 }
 
+// ---------- Fiches d'identité des processus (contenu qualitatif du document niveau 1) ----------
+// Chaque processus ayant un code valide reçoit une fiche repliable : finalité, pilote, ressources, risques, exigences.
+// Ce qui est saisi ici remplit le document Word ; les exemples (placeholders) guident, et un bouton les insère dans les champs vides.
+const EXEMPLE_FICHE = {
+  finalite: (p) => t("carto.fiche.finalite.ex." + (p.categorie || "aucune")),
+  pilote: () => t("carto.fiche.pilote.ex"),
+  ressources: () => sansPrefixeExemple(t("carto.fiche.ressources.ph")),
+  risques: () => sansPrefixeExemple(t("carto.fiche.risques.ph")),
+  exigences: () => sansPrefixeExemple(t("carto.fiche.exigences.ph")),
+};
+const LABEL_FICHE = { finalite: "carto.fiche.finalite", pilote: "carto.fiche.pilote", ressources: "carto.fiche.ressources", risques: "carto.fiche.risques_opp", exigences: "carto.fiche.exigences" };
+const PLACEHOLDER_FICHE = { finalite: (p) => t("carto.fiche.finalite.ex." + (p.categorie || "aucune")), pilote: () => t("carto.fiche.pilote.ph"), ressources: () => t("carto.fiche.ressources.ph"), risques: () => t("carto.fiche.risques.ph"), exigences: () => t("carto.fiche.exigences.ph") };
+const sansPrefixeExemple = (s) => s.replace(/^\s*(ex\.|e\.g\.)\s*/i, "");
+
+function blocFiche(c, p) {
+  const f = ficheProcessus(c, p.code);
+  const rempli = FICHE_CHAMPS.some((k) => (f[k] || "").trim());
+  const champs = FICHE_CHAMPS.map((k) => champ(t(LABEL_FICHE[k]), f[k] || "", (v) => cs.modifierFiche(p.code, k, v), { placeholder: PLACEHOLDER_FICHE[k](p), large: k !== "pilote" }));
+  const inserer = h("button", { type: "button", class: "mini", title: t("carto.fiches.inserer.titre"), onclick: () => {
+    const fiche = ficheProcessus(cs.lire(), p.code);
+    FICHE_CHAMPS.forEach((k) => { if (!(fiche[k] || "").trim()) cs.modifierFiche(p.code, k, EXEMPLE_FICHE[k](p)); });
+    rendre();
+  } }, icone("plus", 15, 2.2), t("carto.fiches.inserer"));
+  return h("details", { class: "carto-fiche" + (rempli ? " remplie" : ""), open: false },
+    h("summary", {},
+      h("span", { class: "carto-fiche-titre" }, libelleProcessus(p)),
+      h("span", { class: "carto-fiche-bloc" }, p.categorie ? t("carto.categorie." + p.categorie) : t("carto.categorie.aucune")),
+      rempli ? h("span", { class: "carto-fiche-ok", title: t("carto.fiches") }, icone("check", 15)) : null),
+    ...champs,
+    h("div", { class: "boutons-ligne" }, inserer));
+}
+
+function carteFiches(c) {
+  const eligibles = c.processus.filter((p) => messageCode(c, p) === null);
+  return h("section", { class: "carte" },
+    h("div", { class: "carte-entete" }, h("h3", {}, t("carto.fiches")), h("span", { class: "compteur" }, String(eligibles.length))),
+    h("p", { class: "aide" }, t("carto.fiches.aide")),
+    eligibles.length ? h("div", { class: "carto-fiches" }, ...eligibles.map((p) => blocFiche(c, p))) : h("p", { class: "aide carto-vide" }, t("carto.fiches.vide")));
+}
+
 function messageDocument(c, d) {
   if (!d.code) return null;
   if (!FORMAT_CODE_LIBRE.test(d.code)) return "carto.documents.code.invalide";
@@ -380,7 +420,7 @@ export function rendre() {
     blocModeles(),
     blocApercu(c),
     cs.estVideMaintenant() ? h("p", { class: "intro carto-vide" }, t("carto.vide")) : h("p", { class: "intro" }, t("carto.intro")),
-    carteOrganisation(c), carteProcessus(c), carteFlux(c), carteNomenclature(c), carteDocuments(c),
+    carteOrganisation(c), carteProcessus(c), carteFlux(c), carteFiches(c), carteNomenclature(c), carteDocuments(c),
   ].filter(Boolean));
   $("carto-info").textContent = t("carto.info", { processus: c.processus.length, flux: c.flux.length });
   requestAnimationFrame(() => ajusterToutes(conteneur));

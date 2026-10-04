@@ -36,8 +36,13 @@ export const MAX_PROCESSUS = 40;
 export const MAX_FLUX = 120;
 export const MAX_DOCUMENTS = 500;
 
+// Fiche d'identité d'un processus (niveau 1) : les parties que la cartographie ne peut pas déduire et que l'organisation saisit.
+// Les fiches sont rangées par CODE de processus (le code survit à un import, contrairement à l'id, qui est régénéré).
+export const FICHE_CHAMPS = ["finalite", "pilote", "ressources", "risques", "exigences"];
+export const MAX_FICHE = 2000;
+
 export function nouvelleCartographie() {
-  return { organisation: "", titre: "", contexte: "", exigences: "", satisfaction: "", processus: [], flux: [], documents: [], nomenclature: { ...NOMENCLATURE_PAR_DEFAUT } };
+  return { organisation: "", titre: "", contexte: "", exigences: "", satisfaction: "", processus: [], flux: [], documents: [], nomenclature: { ...NOMENCLATURE_PAR_DEFAUT }, fiches: {} };
 }
 
 // Le type de code d'un document (« PR », « IT »…) d'après la nomenclature de l'organisation ; la valeur par défaut si elle est vide ou invalide.
@@ -60,6 +65,20 @@ function texte(v, max = 300) {
   return v.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 }
 const idPropre = (v) => (typeof v === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(v) ? v : "");
+
+// Comme texte(), mais pour un champ de fiche saisi sur plusieurs lignes : on garde les sauts de ligne (une ressource par ligne…),
+// on retire les autres caractères de contrôle, on réduit les espaces en trop, et on limite la longueur.
+function texteLong(v, max = MAX_FICHE) {
+  if (typeof v !== "string") return "";
+  return v
+    .replace(/\r\n?/g, "\n")
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ") // tous les contrôles sauf le saut de ligne (\u000a)
+    .split("\n").map((l) => l.replace(/[ \t]+/g, " ").trim()).join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, max);
+}
 
 export function nettoyerNomenclature(brut, repli = NOMENCLATURE_PAR_DEFAUT) {
   const b = brut && typeof brut === "object" ? brut : {};
@@ -112,6 +131,19 @@ export function nettoyerCartographie(brut, { nomenclature = NOMENCLATURE_PAR_DEF
     if (!id) id = nouvelId("d");
     propre.documents.push({ id, code, titre: texte(d.titre, 300) });
   });
+  // Fiches d'identité : rangées par code ; on ne garde que celles d'un processus existant et on ne retient que les champs non vides.
+  const fichesBrut = brut.fiches && typeof brut.fiches === "object" ? brut.fiches : {};
+  codesVus.forEach((code) => {
+    const f = fichesBrut[code];
+    if (!f || typeof f !== "object") return;
+    const fiche = {};
+    let rempli = false;
+    FICHE_CHAMPS.forEach((champ) => {
+      const v = texteLong(f[champ]);
+      if (v) { fiche[champ] = v; rempli = true; }
+    });
+    if (rempli) propre.fiches[code] = fiche;
+  });
   return propre;
 }
 
@@ -128,6 +160,12 @@ export function versJSON(c) {
 
 // ---------- Processus ----------
 export const libelleProcessus = (p) => (p.nom ? `${p.code} ${p.nom}` : p.code);
+
+// La fiche d'identité d'un processus (par code), ou un objet vide si rien n'a été saisi.
+export function ficheProcessus(c, code) {
+  const cle = String(code || "").trim().toUpperCase();
+  return (c && c.fiches && typeof c.fiches === "object" && c.fiches[cle]) || {};
+}
 
 export function processusParCode(c, code) {
   const voulu = String(code || "").trim().toUpperCase();

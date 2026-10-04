@@ -287,6 +287,18 @@ dialog#fenetre-carto { width: min(96vw, 1020px); }
 .carto-modeles-liste { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; max-height: 360px; overflow: auto; }
 .carto-modeles-liste li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1.5px solid var(--trait); border-radius: 10px; background: var(--fond); }
 .carto-modeles-nom { font-size: .85rem; }
+.carto-fiches { display: flex; flex-direction: column; gap: 8px; }
+.carto-fiche { border: 1.5px solid var(--trait); border-radius: 10px; background: var(--fond); padding: 0 12px; }
+.carto-fiche > summary { cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 2px; list-style: none; }
+.carto-fiche > summary::-webkit-details-marker { display: none; }
+.carto-fiche > summary::before { content: "▸"; color: var(--gris); font-size: .9rem; }
+.carto-fiche[open] > summary::before { content: "▾"; }
+.carto-fiche-titre { font-weight: 600; font-size: .9rem; }
+.carto-fiche-bloc { font-size: .72rem; letter-spacing: .03em; text-transform: uppercase; color: var(--encre-legere); }
+.carto-fiche-ok { margin-left: auto; color: var(--sarcelle, #005A70); display: inline-flex; }
+.carto-fiche > .champ, .carto-fiche > .boutons-ligne { margin: 8px 0; }
+.carto-fiche > .boutons-ligne { padding-bottom: 10px; }
+button.mini { font-size: .8rem; padding: 5px 10px; }
 .groupe-carto { margin: 10px 0 6px; }
 .groupe-carto h4 { margin: 0 0 6px; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: var(--encre-legere); }
 .ligne-carto { display: grid; gap: 8px; align-items: start; margin-bottom: 8px; }

@@ -6,7 +6,7 @@
 // d'un fichier, à l'import d'un PDF et au rechargement du navigateur.
 
 import {
-  nouvelleCartographie, nettoyerCartographie, depuisJSON, versJSON, estVide, POINTS_FIXES, CATEGORIES, MAX_PROCESSUS, MAX_FLUX, MAX_DOCUMENTS,
+  nouvelleCartographie, nettoyerCartographie, depuisJSON, versJSON, estVide, POINTS_FIXES, CATEGORIES, MAX_PROCESSUS, MAX_FLUX, MAX_DOCUMENTS, FICHE_CHAMPS, MAX_FICHE,
 } from "./cartographie.js";
 import { nouvelId } from "./model.js";
 import { exempleCartographie } from "./exemple-carto.js";
@@ -103,6 +103,21 @@ export function supprimerProcessus(id) {
   carto.processus = carto.processus.filter((p) => p.id !== id);
   carto.flux = carto.flux.filter((f) => f.de !== id && f.vers !== id); // un échange ne peut pas pointer vers un processus disparu
   apres(true);
+}
+
+// ---------- Fiches d'identité des processus (niveau 1) ----------
+// Rangées par CODE de processus. On n'écrit que si un processus porte ce code. Un champ vidé est retiré ; une fiche vide disparaît.
+// Pendant la saisie on ne redessine pas (apres(false)) : le nettoyage (sauts de ligne, longueur) a lieu au rechargement / à l'import.
+export function modifierFiche(code, champ, valeur) {
+  if (!FICHE_CHAMPS.includes(champ) || typeof valeur !== "string") return;
+  const cle = String(code || "").trim().toUpperCase();
+  if (!cle || !carto.processus.some((p) => p.code === cle)) return;
+  if (!carto.fiches || typeof carto.fiches !== "object") carto.fiches = {};
+  const v = valeur.slice(0, MAX_FICHE);
+  const fiche = carto.fiches[cle] || {};
+  if (v.trim()) fiche[champ] = v; else delete fiche[champ];
+  if (Object.keys(fiche).length) carto.fiches[cle] = fiche; else delete carto.fiches[cle];
+  apres(false);
 }
 
 // ---------- Échanges ----------

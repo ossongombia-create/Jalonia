@@ -23,7 +23,7 @@ import { creerZip } from "./zip.js";
 import { lireLogo } from "./logoImage.js";
 import { t, langueCourante } from "./i18n.js";
 import { NOM_OUTIL } from "./config.js";
-import { CATEGORIES, processusParCategorie, fluxDuProcessus, libelleProcessus } from "./cartographie.js";
+import { CATEGORIES, processusParCategorie, fluxDuProcessus, libelleProcessus, ficheProcessus } from "./cartographie.js";
 
 const EMU_PAR_PX = 9525; // 96 dpi
 
@@ -395,23 +395,35 @@ function interfaceTableCarto(elements, h1, h2) {
   return `<w:tbl>${PROPRIETES_TABLEAU}<w:tblGrid>${grille}</w:tblGrid>${entete}${corps}</w:tbl>${APRES_TABLEAU}`;
 }
 
+// Le texte saisi d'un champ de fiche, rendu en paragraphes (une ligne saisie = un paragraphe) ; vide : le repli « à compléter »/aide.
+function texteFicheXml(valeur, repli) {
+  const v = typeof valeur === "string" ? valeur.trim() : "";
+  if (!v) return repli;
+  const lignes = v.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (!lignes.length) return repli;
+  return lignes.map((l, i) => paragraphe(run(l), `<w:spacing w:after="${i === lignes.length - 1 ? 140 : 40}"/>`)).join("");
+}
+
 function ficheProcessusXml(c, p) {
+  const f = ficheProcessus(c, p.code);
   const parts = [titre1Simple(libelleProcessus(p), true)];
   const L = LARGEUR_TEXTE, wl = Math.round(L * 0.17), wv = Math.round(L * 0.33), w = [wl, wv, wl, L - wl - wv - wl];
   const grille = w.map((x) => `<w:gridCol w:w="${x}"/>`).join("");
+  const pilote = (f.pilote || "").split("\n")[0].trim(); // le pilote tient sur une ligne dans le cartouche
   const lignes = [
     [t("carto.fiche.organisation"), c.organisation || "", t("carto.fiche.bloc"), p.categorie ? t("carto.categorie." + p.categorie) : t("carto.categorie.aucune")],
-    [t("carto.fiche.code"), p.code, t("carto.fiche.pilote"), ""],
+    [t("carto.fiche.code"), p.code, t("carto.fiche.pilote"), pilote],
   ];
   const corps = lignes.map((r) => ligneTableau(r.map((v, j) => cellule(v, w[j], { gras: j % 2 === 0, fond: j % 2 === 0 ? FOND_ETIQUETTE : "" })))).join("");
   parts.push(`<w:tbl>${PROPRIETES_TABLEAU}<w:tblGrid>${grille}</w:tblGrid>${corps}</w:tbl>${APRES_TABLEAU}`);
-  parts.push(titre2(t("carto.fiche.finalite")), aCompleterCarto());
+  parts.push(titre2(t("carto.fiche.finalite")), texteFicheXml(f.finalite, aCompleterCarto()));
   const fx = fluxDuProcessus(c, p.id);
   parts.push(titre2(t("carto.fiche.entrees")), interfaceTableCarto(fx.entrants, t("carto.fiche.element"), t("carto.fiche.fournisseur")));
   parts.push(titre2(t("carto.fiche.sorties")), interfaceTableCarto(fx.sortants, t("carto.fiche.element"), t("carto.fiche.client")));
-  parts.push(titre2(t("carto.fiche.ressources")), aCompleterCarto());
-  parts.push(titre2(t("carto.fiche.risques_opp")), paragraphe(runs(t("carto.fiche.risques_opp.aide"), `<w:i/><w:color w:val="${GRIS_VIDE}"/>`), '<w:spacing w:after="140"/>'));
-  parts.push(titre2(t("carto.fiche.exigences")), aCompleterCarto());
+  parts.push(titre2(t("carto.fiche.ressources")), texteFicheXml(f.ressources, aCompleterCarto()));
+  const aideRisques = paragraphe(runs(t("carto.fiche.risques_opp.aide"), `<w:i/><w:color w:val="${GRIS_VIDE}"/>`), '<w:spacing w:after="140"/>');
+  parts.push(titre2(t("carto.fiche.risques_opp")), texteFicheXml(f.risques, aideRisques));
+  parts.push(titre2(t("carto.fiche.exigences")), texteFicheXml(f.exigences, aCompleterCarto()));
   return parts.join("");
 }
 
