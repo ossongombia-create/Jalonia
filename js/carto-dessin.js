@@ -164,9 +164,12 @@ export function svgCartographie(c) {
       o.push(`<rect x="${bx - br * 0.4}" y="${by - br * 0.4}" width="${br * 0.8}" height="${br * 0.8}" rx="${br * 0.22}" fill="#fff" opacity="0.92"/>`);
       const tx = bx + br + 12;
       const lignes = couper(carte.nom, 34);
-      T(tx, by - 4, carte.code, 17, carte.couleur, "800");
-      if (lignes.length <= 1) T(tx, by + 16, lignes[0] || "", 14, INK, "400");
-      else { T(tx, by + 11, lignes[0], 13, INK, "400"); T(tx, by + 27, lignes[1], 13, INK, "400"); }
+      const rangs = 1 + lignes.length;           // ligne du code + lignes du nom
+      const rowH = 19;
+      const base = by - ((rangs - 1) * rowH) / 2 + 6;   // bloc centré verticalement sur le centre de la carte (= centre de la bulle)
+      const nsz = lignes.length > 1 ? 13 : 14;
+      T(tx, base, carte.code, 17, carte.couleur, "800");
+      lignes.forEach((l, i) => T(tx, base + (i + 1) * rowH, l, nsz, INK, "400"));
     }
     if (b.categorie === "realisation") {
       for (let i = 0; i < b.cartes.length - 1; i += 1) {
