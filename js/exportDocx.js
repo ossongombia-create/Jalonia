@@ -23,6 +23,7 @@ import { creerZip } from "./zip.js";
 import { lireLogo } from "./logoImage.js";
 import { t, langueCourante } from "./i18n.js";
 import { NOM_OUTIL } from "./config.js";
+import { CATEGORIES, processusParCategorie, fluxDuProcessus, libelleProcessus } from "./cartographie.js";
 
 const EMU_PAR_PX = 9525; // 96 dpi
 
@@ -366,5 +367,108 @@ export function construireDocxIT(procedure, options = {}) {
     fichiers.push({ nom: "customXml/_rels/item1.xml.rels", donnees: RELS_EMBARQUE });
     fichiers.push({ nom: "customXml/itemProps1.xml", donnees: PROPRIETES_EMBARQUE });
   }
+  return creerZip(fichiers, opt.maintenant);
+}
+
+// ---------- Document de NIVEAU 1 (cartographie + fiches processus) ----------
+// Le document reprend la CARTOGRAPHIE (dessin en image, fourni par le navigateur) sur une page paysage,
+// puis un SOMMAIRE des fiches par bande, puis UNE FICHE D'IDENTITÉ par processus. Les éléments que la
+// cartographie connaît (code, nom, bloc, et interfaces d'après les flux) sont pré-remplis ; les parties
+// qualitatives (finalité, ressources, risques/opportunités, exigences) sont des titres « à compléter ».
+const titre1Simple = (texte, saut = false) => paragraphe(run(texte), `<w:pStyle w:val="Titre1"/>${saut ? "<w:pageBreakBefore/>" : ""}`);
+const aCompleterCarto = () => paragraphe(runs(t("carto.fiche.a_completer"), `<w:i/><w:color w:val="${GRIS_VIDE}"/>`), '<w:spacing w:after="140"/>');
+
+function pointLabelCarto(point) {
+  if (!point) return "";
+  if (point.genre === "processus") return libelleProcessus(point.processus);
+  if (point.genre === "categorie") return t("carto.categorie." + point.cle);
+  return t("carto.point." + point.cle);
+}
+
+// Tableau d'une interface (entrées ou sorties) : [ information | autre processus / bloc / partie intéressée ]. Vide : « à compléter ».
+function interfaceTableCarto(elements, h1, h2) {
+  if (!elements || !elements.length) return aCompleterCarto();
+  const L = LARGEUR_TEXTE, w0 = Math.round(L * 0.58), w1 = L - w0;
+  const grille = `<w:gridCol w:w="${w0}"/><w:gridCol w:w="${w1}"/>`;
+  const entete = ligneTableau([cellule(h1, w0, { gras: true, blanc: true, fond: SARCELLE }), cellule(h2, w1, { gras: true, blanc: true, fond: SARCELLE })], { entete: true });
+  const corps = elements.map((e) => ligneTableau([cellule(e.information || "", w0, {}), cellule(pointLabelCarto(e.point), w1, {})])).join("");
+  return `<w:tbl>${PROPRIETES_TABLEAU}<w:tblGrid>${grille}</w:tblGrid>${entete}${corps}</w:tbl>${APRES_TABLEAU}`;
+}
+
+function ficheProcessusXml(c, p) {
+  const parts = [titre1Simple(libelleProcessus(p), true)];
+  const L = LARGEUR_TEXTE, wl = Math.round(L * 0.17), wv = Math.round(L * 0.33), w = [wl, wv, wl, L - wl - wv - wl];
+  const grille = w.map((x) => `<w:gridCol w:w="${x}"/>`).join("");
+  const lignes = [
+    [t("carto.fiche.organisation"), c.organisation || "", t("carto.fiche.bloc"), p.categorie ? t("carto.categorie." + p.categorie) : t("carto.categorie.aucune")],
+    [t("carto.fiche.code"), p.code, t("carto.fiche.pilote"), ""],
+  ];
+  const corps = lignes.map((r) => ligneTableau(r.map((v, j) => cellule(v, w[j], { gras: j % 2 === 0, fond: j % 2 === 0 ? FOND_ETIQUETTE : "" })))).join("");
+  parts.push(`<w:tbl>${PROPRIETES_TABLEAU}<w:tblGrid>${grille}</w:tblGrid>${corps}</w:tbl>${APRES_TABLEAU}`);
+  parts.push(titre2(t("carto.fiche.finalite")), aCompleterCarto());
+  const fx = fluxDuProcessus(c, p.id);
+  parts.push(titre2(t("carto.fiche.entrees")), interfaceTableCarto(fx.entrants, t("carto.fiche.element"), t("carto.fiche.fournisseur")));
+  parts.push(titre2(t("carto.fiche.sorties")), interfaceTableCarto(fx.sortants, t("carto.fiche.element"), t("carto.fiche.client")));
+  parts.push(titre2(t("carto.fiche.ressources")), aCompleterCarto());
+  parts.push(titre2(t("carto.fiche.risques_opp")), paragraphe(runs(t("carto.fiche.risques_opp.aide"), `<w:i/><w:color w:val="${GRIS_VIDE}"/>`), '<w:spacing w:after="140"/>'));
+  parts.push(titre2(t("carto.fiche.exigences")), aCompleterCarto());
+  return parts.join("");
+}
+
+// Taille de l'image de la cartographie pour tenir sur une page paysage (proportions conservées).
+function dispositionCarto(opt) {
+  const wpx = opt.largeurPng / (opt.echellePng || 1), hpx = opt.hauteurPng / (opt.echellePng || 1);
+  const maxW = Math.round(((PAYSAGE.w - PAYSAGE.gauche - PAYSAGE.droite) / 1440) * 96);
+  const maxH = Math.round(((PAYSAGE.h - PAYSAGE.haut - PAYSAGE.bas) / 1440) * 96);
+  let w = maxW, h = (w * hpx) / wpx;
+  if (h > maxH) { h = maxH; w = (h * wpx) / hpx; }
+  return { cx: Math.round(w * EMU_PAR_PX), cy: Math.round(h * EMU_PAR_PX) };
+}
+
+function corpsCartoXml(c, opt) {
+  const avecImage = Boolean(opt.png) && opt.largeurPng > 0 && opt.hauteurPng > 0;
+  const parts = [
+    paragraphe(run(t("carto.doc.titre"), `<w:b/><w:color w:val="${SARCELLE}"/><w:sz w:val="36"/><w:szCs w:val="36"/>`), '<w:jc w:val="center"/><w:spacing w:after="80"/>'),
+    paragraphe(run(c.organisation || t("carto.doc.sans_org"), `<w:i/><w:color w:val="${GRIS_VIDE}"/><w:sz w:val="24"/><w:szCs w:val="24"/>`), '<w:jc w:val="center"/><w:spacing w:after="160"/>'),
+  ];
+  if (avecImage) { const d = dispositionCarto(opt); parts.push(imageXml(d.cx, d.cy, t("carto.titre"), '<w:keepLines/><w:spacing w:before="40" w:after="0"/><w:jc w:val="center"/>')); parts.push(finDeSection("paysage")); }
+  else parts.push(paragraphe(runs(t("carto.doc.image_absente"), `<w:i/><w:color w:val="${GRIS_VIDE}"/>`), '<w:jc w:val="center"/><w:spacing w:after="120"/>'));
+  parts.push(titre1Simple(t("carto.doc.sommaire"), !avecImage));
+  CATEGORIES.concat([""]).forEach((cat) => {
+    const ps = c.processus.filter((p) => (p.categorie || "") === cat);
+    if (!ps.length) return;
+    parts.push(titre2(t("carto.categorie." + (cat || "aucune"))));
+    ps.forEach((p) => parts.push(paragraphe(run("• " + libelleProcessus(p)), '<w:spacing w:after="40"/>')));
+  });
+  const ordre = [...CATEGORIES.flatMap((cat) => c.processus.filter((p) => p.categorie === cat)), ...c.processus.filter((p) => !p.categorie)];
+  ordre.forEach((p) => parts.push(ficheProcessusXml(c, p)));
+  return parts.join("");
+}
+
+function piedCartoXml() {
+  const pet = `<w:sz w:val="15"/><w:szCs w:val="15"/><w:color w:val="${PIED}"/>`;
+  return `${ENTETE_XML}<w:ftr xmlns:w="${NS_W}" xmlns:r="${NS_R}">` +
+    paragraphe(`${run(t("carto.doc.titre") + " · ", pet)}${champ("PAGE", pet)}${run(" / ", pet)}${champ("NUMPAGES", pet)}`, '<w:jc w:val="center"/>') +
+    "</w:ftr>";
+}
+
+// options : { png: Uint8Array | null, largeurPng, hauteurPng (pixels), echellePng (1 ou 2), maintenant: Date }
+export function construireDocxCarto(cartographie, options = {}) {
+  const opt = { png: null, largeurPng: 0, hauteurPng: 0, echellePng: 1, maintenant: new Date(), ...options };
+  const c = cartographie || { processus: [], flux: [] };
+  const avecImage = Boolean(opt.png) && opt.largeurPng > 0 && opt.hauteurPng > 0;
+  const body = corpsCartoXml(c, { ...opt, png: avecImage ? opt.png : null });
+  const xmlDocument = `${ENTETE_XML}<w:document xmlns:w="${NS_W}" xmlns:r="${NS_R}"><w:body>${body}${propriete("portrait")}</w:body></w:document>`;
+  const fichiers = [
+    { nom: "[Content_Types].xml", donnees: typesXml(false, null, true) },
+    { nom: "_rels/.rels", donnees: RELS },
+    { nom: "word/document.xml", donnees: xmlDocument },
+    { nom: "word/styles.xml", donnees: stylesXml() },
+    { nom: "word/settings.xml", donnees: SETTINGS },
+    { nom: "word/footer1.xml", donnees: piedCartoXml() },
+    { nom: "word/_rels/document.xml.rels", donnees: relsDocument(avecImage, false, null) },
+    { nom: "docProps/core.xml", donnees: proprietesXml({ cartouche: { titre: t("carto.doc.titre") } }, opt.maintenant.toISOString().replace(/\.\d+Z$/, "Z")) },
+  ];
+  if (avecImage) fichiers.push({ nom: "word/media/logigramme.png", donnees: opt.png });
   return creerZip(fichiers, opt.maintenant);
 }

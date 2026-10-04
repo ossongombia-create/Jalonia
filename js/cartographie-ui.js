@@ -13,12 +13,15 @@ import {
 } from "./cartographie.js";
 import { importerPdf } from "./cartographie-pdf.js";
 import { svgCartographie } from "./carto-dessin.js";
+import { construireDocxCarto } from "./exportDocx.js";
+import { BIBLIOTHEQUE } from "./carto-bibliotheque.js";
 
 const $ = (id) => document.getElementById(id);
 const TAILLE_MAX_PDF = 10_000_000;
 let rapport = []; // ce que la dernière lecture de PDF a compris (affiché en haut de la fenêtre)
 let focusApres = null; // l'élément à sélectionner après un redessin (ex. le code du processus qu'on vient d'ajouter)
 let apercu = false; // l'aperçu dessiné de la cartographie est-il ouvert ?
+let modeles = false; // la bibliothèque de modèles est-elle ouverte ?
 
 export function ouvrirCartographie() {
   const fenetre = $("fenetre-carto");
@@ -89,6 +92,8 @@ function barreActions() {
     h("button", { type: "button", onclick: () => json.click() }, icone("folder", 17), t("carto.ouvrir")),
     h("button", { type: "button", disabled: vide, onclick: enregistrer }, icone("save", 17), t("carto.enregistrer")),
     h("button", { type: "button", disabled: vide, class: apercu ? "primaire" : "", onclick: () => { apercu = !apercu; rendre(); } }, icone("carto", 17), t("carto.voir")),
+    h("button", { type: "button", disabled: vide, onclick: genererWordNiveau1 }, icone("word", 17), t("carto.generer_word")),
+    h("button", { type: "button", class: modeles ? "primaire" : "", onclick: () => { modeles = !modeles; rendre(); } }, icone("layers", 17), t("carto.modeles")),
     h("button", { type: "button", onclick: () => { if (cs.estVideMaintenant() || confirm(t("carto.confirmer_remplacer"))) { rapport = []; cs.chargerExemple(); rendre(); } } }, icone("doc", 17), t("carto.exemple")),
     h("button", { type: "button", class: "suppr", disabled: vide, onclick: () => { if (confirm(t("carto.confirmer_vider"))) { rapport = []; cs.vider(); rendre(); } } }, icone("trash", 17), t("carto.vider")),
     pdf, json);
@@ -117,6 +122,56 @@ function telechargerPng(svg, base) {
   };
   img.onerror = () => URL.revokeObjectURL(url);
   img.src = url;
+}
+
+// Rend la cartographie en PNG (bytes) pour l'insérer dans le document Word. Résout { bytes, w, h } (canvas à l'échelle 2) ou { bytes: null }.
+function cartoVersPng(c) {
+  return new Promise((resolve) => {
+    const svg = svgCartographie(c);
+    let node;
+    try { node = new DOMParser().parseFromString(svg, "image/svg+xml").documentElement; } catch (e) { resolve({ bytes: null, w: 0, h: 0 }); return; }
+    const w = Number(node.getAttribute("width")) || 1600, h = Number(node.getAttribute("height")) || 900;
+    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement("canvas");
+      cv.width = w * 2; cv.height = h * 2;
+      const ctx = cv.getContext("2d");
+      ctx.scale(2, 2); ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      cv.toBlob(async (b) => {
+        if (!b) { resolve({ bytes: null, w: 0, h: 0 }); return; }
+        resolve({ bytes: new Uint8Array(await b.arrayBuffer()), w: cv.width, h: cv.height });
+      }, "image/png");
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve({ bytes: null, w: 0, h: 0 }); };
+    img.src = url;
+  });
+}
+
+// Génère le document Word de NIVEAU 1 : la cartographie (en image) + le sommaire + une fiche par processus.
+async function genererWordNiveau1() {
+  const c = cs.lire();
+  if (cs.estVideMaintenant()) return;
+  const png = await cartoVersPng(c);
+  const octets = construireDocxCarto(c, { png: png.bytes, largeurPng: png.w, hauteurPng: png.h, echellePng: 2 });
+  telecharger(octets, `cartographie-niveau1-${baseNom(c)}.docx`, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+}
+
+// La bibliothèque de modèles : 50 cartographies de départ par secteur. Choisir en charge une (remplace la saisie en cours).
+function blocModeles() {
+  if (!modeles) return null;
+  return h("section", { class: "carte carto-modeles" },
+    h("div", { class: "carte-entete" },
+      h("h3", {}, t("carto.modeles.titre")),
+      h("button", { type: "button", onclick: () => { modeles = false; rendre(); } }, t("import.fermer"))),
+    h("p", { class: "aide" }, t("carto.modeles.aide")),
+    h("ul", { class: "carto-modeles-liste" }, ...BIBLIOTHEQUE.map((m) =>
+      h("li", {},
+        h("span", { class: "carto-modeles-nom" }, m.organisation),
+        h("button", { type: "button", onclick: () => {
+          if (cs.estVideMaintenant() || confirm(t("carto.confirmer_remplacer"))) { cs.remplacer(m); rapport = []; modeles = false; apercu = true; rendre(); }
+        } }, t("carto.modeles.charger"))))));
 }
 
 // L'aperçu dessiné de la cartographie (style 09) + les boutons d'export. Le SVG est construit par carto-dessin.js (texte échappé).
@@ -322,6 +377,7 @@ export function rendre() {
   conteneur.replaceChildren(...[
     barreActions(),
     blocRapport(),
+    blocModeles(),
     blocApercu(c),
     cs.estVideMaintenant() ? h("p", { class: "intro carto-vide" }, t("carto.vide")) : h("p", { class: "intro" }, t("carto.intro")),
     carteOrganisation(c), carteProcessus(c), carteFlux(c), carteNomenclature(c), carteDocuments(c),
