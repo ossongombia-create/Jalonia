@@ -12,6 +12,7 @@ import { icone } from "./icones.js";
 import { carte } from "./cartes.js";
 import { champ, ajusterToutes } from "./formulaire.js";
 import { blocRaccord } from "./deroule.js";
+import { questionnement } from "./questionnement.js";
 import { TYPES_OUTIL, NATURES_CONTROLE, NATURES_CONTRAINTE, MAX_OPERATIONS_SAISIE, MAX_CONTROLES, MAX_CORRECTIVES } from "./model.js";
 import { MIN_OPERATIONS, MAX_OPERATIONS } from "./rules-it.js";
 
@@ -190,7 +191,30 @@ function carteOperation(op, i, total) {
       pastille("doc", t("it.op.enregistrement"), op.enregistrement, () => store.modifierOperation(op.id, "enregistrement", !op.enregistrement), "op-enregistrement-" + op.id, t("it.op.enregistrement.aide")),
       pastille("circplus", t("it.op.contrainte"), op.contrainte.actif, () => store.modifierContrainteOperation(op.id, "actif", !op.contrainte.actif), "op-contrainte-" + op.id, t("form.contrainte.aide"))),
     op.contrainte.actif ? detailContrainte(op) : null,
-    details);
+    details,
+    blocSansObjetOp(op, i));
+}
+
+// Bloc « sans objet » niveau 3 : seules les alertes « Avec quoi ? » et « Sous contraintes ? » peuvent l'être (« Comment ? » est toujours tenu).
+// N'apparaît que pour les alertes actuellement ouvertes sur cette opération.
+const POINT_PAR_CLE_IT = { avec: 7, contraintes: 11 };
+function blocSansObjetOp(op, i) {
+  const q = questionnement(store.lire());
+  const num = i + 1;
+  const ouverte = (cle) => {
+    const pt = q.points.find((x) => x.n === POINT_PAR_CLE_IT[cle]);
+    return pt && (pt.manquants.includes(num) || pt.nonApplicables.includes(num));
+  };
+  const cles = ["avec", "contraintes"].filter(ouverte);
+  if (!cles.length) return null;
+  const cases = cles.map((cle) => {
+    const input = h("input", { type: "checkbox", checked: (op.sansObjet && op.sansObjet[cle]) === true });
+    input.addEventListener("change", () => store.basculerSansObjetOperation(op.id, cle, input.checked));
+    return h("label", { class: "case-sansobjet" }, input, h("span", {}, t("quest.na." + cle)));
+  });
+  return h("div", { class: "bloc-sansobjet" },
+    h("p", { class: "aide" }, t("part.sansobjet.aide")),
+    h("div", { class: "cases-sansobjet" }, ...cases));
 }
 
 function detailContrainte(op) {

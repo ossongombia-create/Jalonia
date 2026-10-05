@@ -155,6 +155,9 @@ export function nouvelleEtape(champs = {}) {
     // Macro-instruction : type "regroupement" (bord double : plusieurs étapes homogènes regroupées, détail en annexe) ou
     // "alternatives" (cadre gras titré par le verbe commun, un compartiment en pointillé par alternative exclusive). "" = instruction simple.
     macro: { type: "", detail: "", alternatives: [] },
+    // Points d'alerte (Comment / Avec quoi / Sous contraintes) jugés « sans objet » pour CETTE instruction : ils ne sont plus
+    // comptés comme manquants mais rangés dans un résumé discret du diagnostic. Seules les alertes sont concernées (jamais les erreurs).
+    sansObjet: { comment: false, avec: false, contraintes: false },
     ...champs,
   };
 }
@@ -183,6 +186,8 @@ export function nouvelleOperation(champs = {}) {
     contrainte: { actif: false, nature: "", texte: "" }, // délai ou coût (cercle « + »)
     outils: [], // { id, type: "document" | "materiel", nom } : reliés à l'opération par un trait en pointillé
     controles: [], // { id, question, nature, enregistrement, correctives: [ids de correctives de CETTE opération] }
+    // Au niveau 3, « Comment ? » est toujours tenu : seules les alertes « Avec quoi ? » et « Sous contraintes ? » peuvent être jugées sans objet.
+    sansObjet: { avec: false, contraintes: false },
     correctives: [], // { id, libelle, renvoi } : « renvoi » = autre instruction ou procédure si l'action ne règle pas tout le défaut
     ...champs,
   };

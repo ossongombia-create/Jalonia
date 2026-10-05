@@ -13,6 +13,7 @@ import { champ, zoneTexte, ajusterToutes } from "./formulaire.js";
 import { enregistrerJSON } from "./sorties.js";
 import { lire as lireCartographie } from "./cartographie-store.js";
 import { fluxDuProcessus, libelleProcessus, processusDuTexte } from "./cartographie.js";
+import { questionnement } from "./questionnement.js";
 import { LETTRES_RACI, lettreRaci, TYPES_MACRO, MAX_ALTERNATIVES_MACRO, TYPES_OUTIL, partiesDeLaFleche, MAX_RISQUES, MAX_OPPORTUNITES, MAX_ALTERNATIVES, NATURES_CONTROLE, NATURES_CONTRAINTE, OPERATEURS, criticite, scoreOpportunite } from "./model.js";
 
 // ---------- État de l'écran ----------
@@ -270,7 +271,30 @@ function vueInstruction(p, e, i) {
       panneauOutils(e),
       panneauParticularites(p, e, particularites)),
     details.length ? h("div", { class: "details-particularites" }, ...details) : null,
+    blocSansObjet(p, e, i),
   ];
+}
+
+// Bloc « sans objet » : pour les SEULES alertes actuellement ouvertes sur cette instruction (Comment / Avec quoi / Sous contraintes),
+// une case « non applicable » qui retire l'alerte du diagnostic (elle part dans le résumé discret). N'apparaît pas si aucune alerte n'est ouverte.
+const POINT_PAR_CLE = { comment: 6, avec: 7, contraintes: 11 };
+function blocSansObjet(p, e, i) {
+  const q = questionnement(p);
+  const num = i + 1;
+  const ouverte = (cle) => {
+    const pt = q.points.find((x) => x.n === POINT_PAR_CLE[cle]);
+    return pt && (pt.manquants.includes(num) || pt.nonApplicables.includes(num));
+  };
+  const cles = ["comment", "avec", "contraintes"].filter(ouverte);
+  if (!cles.length) return null;
+  const cases = cles.map((cle) => {
+    const input = h("input", { type: "checkbox", checked: (e.sansObjet && e.sansObjet[cle]) === true });
+    input.addEventListener("change", () => store.basculerSansObjet(e.id, cle, input.checked));
+    return h("label", { class: "case-sansobjet" }, input, h("span", {}, t("quest.na." + cle)));
+  });
+  return h("section", { class: "carte bloc-sansobjet" },
+    h("p", { class: "aide" }, t("part.sansobjet.aide")),
+    h("div", { class: "cases-sansobjet" }, ...cases));
 }
 
 function panneauEchanges(e) {

@@ -567,6 +567,25 @@ export function basculerCorrectrice(etapeId, actif) {
   apres(true);
 }
 
+// Marque (ou non) un point d'alerte du questionnement comme « sans objet » pour une instruction. cle ∈ { comment, avec, contraintes }.
+const CLES_SANS_OBJET = ["comment", "avec", "contraintes"];
+export function basculerSansObjet(etapeId, cle, actif) {
+  const etape = etapeDe(etapeId);
+  if (!etape || !CLES_SANS_OBJET.includes(cle)) return;
+  if (!etape.sansObjet || typeof etape.sansObjet !== "object") etape.sansObjet = { comment: false, avec: false, contraintes: false };
+  avant();
+  etape.sansObjet[cle] = actif === true;
+  apres(true);
+}
+export function basculerSansObjetOperation(opId, cle, actif) {
+  const op = operationDe(opId);
+  if (!op || !["avec", "contraintes"].includes(cle)) return;
+  if (!op.sansObjet || typeof op.sansObjet !== "object") op.sansObjet = { avec: false, contraintes: false };
+  avant();
+  op.sansObjet[cle] = actif === true;
+  apres(true);
+}
+
 // ---------- Formes particulières d'une instruction : niveau 3, sous-procédure, macro-instruction ----------
 // Une instruction n'a qu'UNE de ces formes à la fois (cadre du dessin) : en activer une désactive les autres.
 function libererForme(etape, garder) {
@@ -1165,6 +1184,12 @@ function nettoyerContrainte(brut) {
   return { actif: c.actif === true, nature: NATURES_CONTRAINTE.includes(c.nature) ? c.nature : c.actif === true ? "delai" : "", texte: texteCourt(c.texte, 40) };
 }
 
+// Points d'alerte jugés « sans objet » : un objet { <cle>: bool } restreint aux clés attendues (comment/avec/contraintes).
+function nettoyerSansObjet(brut, cles) {
+  const s = brut && typeof brut === "object" ? brut : {};
+  return Object.fromEntries(cles.map((k) => [k, s[k] === true]));
+}
+
 // R.A.C.I. : seuls les rôles qui existent, ni réalisateur ni participant, avec A, C ou I ; un seul A.
 function nettoyerRaci(brut, idsRoles, roleId, participants) {
   const sortie = {};
@@ -1233,6 +1258,7 @@ function nettoyerInstruction(brut) {
     const op = nouvelleOperation({
       id: identifiant(o.id, "p"), libelle: texteCourt(o.libelle, 300), entree: texteCourt(o.entree, 500), sortie: texteCourt(o.sortie, 500),
       vigilance: o.vigilance === true, enregistrement: o.enregistrement === true, contrainte: nettoyerContrainte(o.contrainte),
+      sansObjet: nettoyerSansObjet(o.sansObjet, ["avec", "contraintes"]),
     });
     op.outils = nettoyerOutils(o.outils);
     const anciensIds = new Map(); // ancien identifiant -> identifiant propre, pour rétablir les liens contrôle -> corrective
@@ -1330,6 +1356,7 @@ export function nettoyer(brut) {
       contrat: nettoyerContrat(e.contrat),
       sousProcedure: nettoyerSousProcedure(e.sousProcedure),
       macro: nettoyerMacro(e.macro),
+      sansObjet: nettoyerSansObjet(e.sansObjet, ["comment", "avec", "contraintes"]),
     }));
     // Une seule forme particulière par instruction : sous-procédure, puis macro-instruction, puis niveau 3.
     const dernier = propre.etapes[propre.etapes.length - 1];

@@ -251,6 +251,11 @@ li:last-child > .pas { min-height: 30px; }
 #diagnostic li.alerte { border-color: #d19a1e; }
 #diagnostic li.ok { border-color: var(--ok-vif); }
 #diagnostic li.conseil { border-color: var(--sarcelle); margin-left: 14px; font-size: .85rem; color: var(--encre-douce); }
+#diagnostic li.sansobjet { border-color: var(--trait); border-left-style: dashed; font-size: .82rem; color: var(--gris); font-style: italic; }
+.bloc-sansobjet { border: 1.5px dashed var(--trait); border-radius: 10px; background: var(--fond); padding: 8px 12px; margin-top: 8px; }
+.bloc-sansobjet .aide { margin: 0 0 6px; font-size: .8rem; color: var(--gris); }
+.cases-sansobjet { display: flex; flex-wrap: wrap; gap: 14px; }
+.case-sansobjet { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; cursor: pointer; }
 
 /* ---------- 8. Fenêtre d'aperçu (logigramme ou document) ---------- */
 dialog#fenetre-apercu, dialog#fenetre-carto { padding: 0; border: 0; border-radius: 18px; overflow: hidden; width: min(96vw, 1180px); max-width: 96vw; height: 94vh; max-height: 94vh; background: var(--fond); color: var(--encre); box-shadow: 0 24px 60px rgba(0, 58, 73, .35); }

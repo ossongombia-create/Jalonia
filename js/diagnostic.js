@@ -12,7 +12,7 @@ import { constatsLisibilite } from "./conseils.js";
 import { construireDocument, verifierLongueur } from "./document.js";
 import { nombre } from "./i18n.js";
 import { estInstruction } from "./parcours.js";
-import { constatsQuestionnement, sansDoublons } from "./questionnement.js";
+import { constatsQuestionnement, constatsNonApplicables, sansDoublons } from "./questionnement.js";
 
 // Instruction de travail : le dessin doit tenir sur UNE page A4 avec un texte lisible, et les flèches « non » ne se croisent pas.
 export function constatsDessinIT(p) {
@@ -31,10 +31,12 @@ export function constatsDiagnostic(p, carto = lireCartographie()) {
   const questions = constatsQuestionnement(p);
   // « Aucune anomalie » n'a plus de sens dès qu'une alerte de codification ou un point du questionnement s'ajoute.
   const sansOk = (liste) => (codes.length || questions.length ? liste.filter((c) => c.gravite !== "ok") : liste);
-  if (estInstruction(p)) return [...sansOk(sansDoublons(verifierIT(p), p)), ...questions, ...codes, ...constatsDessinIT(p)];
+  // Résumé discret des alertes jugées « sans objet » : toujours en dernier, non compté dans erreurs/alertes.
+  const nonApplicables = constatsNonApplicables(p);
+  if (estInstruction(p)) return [...sansOk(sansDoublons(verifierIT(p), p)), ...questions, ...codes, ...constatsDessinIT(p), ...nonApplicables];
   const pt = taillePointsSurA4(p);
   const constatsDessin = pt !== null && pt < SEUIL_PT ? [{ gravite: "alerte", cle: "regle.logigramme.trop_haut", params: { pt: nombre(pt), seuil: nombre(SEUIL_PT) } }, ...constatsLisibilite(p)] : [];
   const croisements = croisementsNiveau2(p);
   if (croisements > 0) constatsDessin.push({ gravite: "alerte", cle: "regle.logigramme.croisements", params: { n: croisements } });
-  return [...sansOk(sansDoublons(verifier(p, { nomenclature: carto.nomenclature }), p)), ...questions, ...codes, ...constatsDessin, ...verifierLongueur(construireDocument(p))];
+  return [...sansOk(sansDoublons(verifier(p, { nomenclature: carto.nomenclature }), p)), ...questions, ...codes, ...constatsDessin, ...verifierLongueur(construireDocument(p)), ...nonApplicables];
 }
