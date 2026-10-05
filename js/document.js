@@ -156,60 +156,6 @@ export function plagesDeNumeros(numeros) {
   return parties.join(", ");
 }
 
-// 6. Description des activités : N° | Description de l'étape | Acteur responsable | Document(s) / enregistrement(s)
-// La description reprend le libellé, le contrôle éventuel, les suites d'une décision et les personnes informées.
-function tableauDescription(procedure) {
-  const nomRole = (id) => nomRoleDe(procedure, id);
-  return {
-    type: "tableau", gabarit: GABARITS.description, gras1: [1], centrees: [0],
-    colonnes: ["n", "etape", "acteur", "documents"].map((k) => t("col.description." + k)),
-    lignes: procedure.etapes.map((e, i) => {
-      let acteur = nomRole(e.roleId);
-      const avec = e.participants.map(nomRole).filter(Boolean);
-      if (acteur && avec.length) acteur = t("doc.avec", { acteur, noms: avec.join(", ") });
-      const lignes = [e.libelle];
-      if (e.controle && e.controle.actif) {
-        const critere = e.controle.critere.trim();
-        lignes.push(`${t("doc.controle")} ${e.controle.nature || "?"}${critere ? " : " + critere : ""}`);
-      }
-      if (e.alternatives.length) {
-        const suivante = i + 1 < procedure.etapes.length ? t("doc.suite.vers", { n: i + 2 }) : t("doc.suite.fin");
-        if (e.operateurSortie === "et") {
-          // Suites simultanées : « En même temps (ET) : instruction 4 ; instruction 6 ».
-          const suites = [suivante, ...e.alternatives.map((a) => destination(procedure, a, i + 1))].filter(Boolean);
-          lignes.push(`${t("doc.simultane")} : ${suites.join(" ; ")}`);
-        } else {
-          const cas = [`${e.condition.trim() || t("doc.sinon")} → ${suivante}`, ...e.alternatives.map((a) => `${a.condition.trim() || t("doc.cas")} → ${destination(procedure, a, i + 1)}`)];
-          lignes.push(`${t("doc.decision")} : ${cas.join(" ; ")}`);
-        }
-      }
-      if (e.contrainte && e.contrainte.actif) {
-        const texte = e.contrainte.texte.trim();
-        lignes.push(`${t("doc.contrainte." + (e.contrainte.nature || "autre"))}${texte ? " : " + texte : ""}`);
-      }
-      if (e.correctrice) lignes.push(t("doc.correctrice"));
-      if (e.contrat && e.contrat.actif) {
-        // Indicateur d'interface : le contrat qui régit la flèche de sortie, avec l'autre partie (le rôle de l'instruction suivante).
-        const { vers } = partiesDeLaFleche(procedure, i);
-        lignes.push(`${t("doc.contrat")}${vers ? " " + t("doc.contrat.avec", { role: vers }) : ""} : ${e.contrat.reference.trim() || "?"}`);
-      }
-      if (e.indicateur && e.indicateur.actif) lignes.push(`${t("doc.indicateur")} : ${e.indicateur.nom.trim() || "?"}`);
-      if (e.sousProcedure && e.sousProcedure.actif) lignes.push(`${t("doc.sous_procedure")} : ${e.sousProcedure.code.trim().toUpperCase() || "?"}`);
-      if (e.macro && e.macro.type === "alternatives") {
-        const alts = e.macro.alternatives.map((a) => a.trim()).filter(Boolean);
-        if (alts.length) lignes.push(`${t("doc.macro.alternatives")} : ${alts.join(" ; ")}`);
-      }
-      if (e.macro && e.macro.type === "regroupement") lignes.push(`${t("doc.macro.regroupement")}${e.macro.detail.trim() ? " : " + e.macro.detail.trim() : ""}`);
-      const informes = [...procedure.roles.filter((r) => r.nom.trim() && lettreRaci(e, r.id) === "I").map((r) => r.nom.trim()), ...e.informes];
-      if (informes.length) lignes.push(`${t("doc.informes")} : ${informes.join(", ")}`);
-      const documents = e.outils.map((o) => o.nom.trim()).filter(Boolean);
-      if (e.niveau3.actif) documents.push(`${t("doc.it_n3")} : ${e.niveau3.code.trim() || "?"}`);
-      if (e.controle && e.controle.actif && e.controle.enregistrement.trim()) documents.push(e.controle.enregistrement.trim());
-      return [String(i + 1), lignesNonVides(lignes).join("\n"), acteur, documents.join("\n")].map(cellule);
-    }),
-  };
-}
-
 // 8. Indicateurs de suivi : Indicateur | Mode de calcul | Cible | Fréquence (les trois dernières colonnes viennent de la fiche « indicateur » de l'instruction)
 function tableauIndicateurs(procedure) {
   return {
@@ -296,7 +242,8 @@ function blocsSection(cle, procedure) {
       const amont = raccord(procedure.meta.amont, "doc.amont");
       if (amont) sortie.push(amont);
       if (procedure.meta.declencheur.trim()) sortie.push({ type: "paragraphe", texte: `${t("doc.declencheur")} : ${procedure.meta.declencheur.trim()}` });
-      sortie.push(tableauDescription(procedure));
+      // v1.2 : le tableau « Description des activités » est retiré (doublon avec le logigramme, section 7). On garde le cadrage :
+      // fait déclencheur, fait de fin, interfaces amont/aval ; le détail des tâches se lit sur le logigramme.
       if (procedure.meta.fin.trim()) sortie.push({ type: "paragraphe", texte: `${t("doc.fin")} : ${procedure.meta.fin.trim()}` });
       const aval = raccord(procedure.meta.aval, "doc.aval");
       if (aval) sortie.push(aval);
