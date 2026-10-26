@@ -1,5 +1,6 @@
 // synthese.js — l'étape 3 : la SYNTHÈSE à relire puis à valider.
-// Deux zones se rafraîchissent à chaque modification (elles ne contiennent aucun champ de saisie) :
+// Deux zones se rafraîchissent à chaque modification (elles ne contiennent aucun champ de saisie ; seul le filtre
+// « actions ouvertes seulement » du tableau de suivi, v1.4, est un réglage d'affichage qui ne modifie pas la procédure) :
 //   rendreSynthese()  : identification, déroulé, risques, niveau 3, conformité et longueur (lecture seule)
 //   rendreValidation(): la case « Je valide cette synthèse » qui ouvre l'étape Génération
 
@@ -11,13 +12,44 @@ import { verifierCodes } from "./rules-codes.js";
 import { lire as lireCartographie } from "./cartographie-store.js";
 import { taillePointsSurA4, croisementsNiveau2, SEUIL_PT } from "./render.js";
 import { constatsLisibilite } from "./conseils.js";
-import { construireDocument, estimerPages, verifierLongueur, listeRisques, listeOpportunites, listeNiveau3, listeControles, listeDecisions, PAGES_MAX, PAGES_CIBLE_MIN } from "./document.js";
+import { etatAction, dateDuJour } from "./model.js";
+import { construireDocument, estimerPages, verifierLongueur, formaterDate, listeRisques, listeOpportunites, listeActions, listeNiveau3, listeControles, listeDecisions, PAGES_MAX, PAGES_CIBLE_MIN } from "./document.js";
 import { bloquantsSynthese, estValidee } from "./parcours.js";
 import { constatsQuestionnement, questionnement, sansDoublons } from "./questionnement.js";
 import { carteAvec, pointRole } from "./cartes.js";
 import { icone } from "./icones.js";
 
 const tiret = (v) => (v && String(v).trim() ? String(v).trim() : "—");
+
+// Tableau de suivi des actions (v1.4). Le filtre est un état de l'écran : il n'est pas dans la procédure (ni dans annuler/rétablir).
+let seulementOuvertes = false;
+
+function suiviActions(p, rafraichir) {
+  const aujourdhui = dateDuJour();
+  const toutes = listeActions(p).map((x) => ({ ...x, etat: etatAction(x.action, aujourdhui) }));
+  if (!toutes.length) return [h("p", { class: "aide" }, t("synth.actions.aucune"))];
+  const compte = (etat) => toutes.filter((x) => x.etat === etat).length;
+  const ouvertes = toutes.filter((x) => x.etat !== "close");
+  const filtre = h("input", { type: "checkbox", checked: seulementOuvertes });
+  filtre.addEventListener("change", () => { seulementOuvertes = filtre.checked; rafraichir(); });
+  const affichees = seulementOuvertes ? ouvertes : toutes;
+  const entetes = ["n", "element", "action", "porteur", "echeance", "statut"].map((k) => t("synth.actions.col." + k));
+  return [
+    h("p", { class: "ligne-synth" }, t("synth.actions.resume", { ouvertes: ouvertes.length, retard: compte("retard"), proche: compte("proche") })),
+    h("label", { class: "case-filtre" }, filtre, " ", t("synth.actions.filtre")),
+    h("div", { class: "tab-defile" },
+      h("table", { class: "tab-synth tab-actions" },
+        h("thead", {}, h("tr", {}, ...entetes.map((e) => h("th", {}, e)))),
+        h("tbody", {}, ...affichees.map(({ n, type, libelle, action: a, etat }) => h("tr", { class: "etat-" + etat },
+          h("td", {}, String(n)),
+          h("td", {}, `${t("action.type." + type)} : ${tiret(libelle)}`),
+          h("td", {}, tiret(a.intitule)),
+          h("td", {}, tiret(a.porteur)),
+          h("td", {}, a.echeance ? formaterDate(a.echeance) : "—",
+            etat === "retard" || etat === "proche" ? h("span", { class: "etat-action " + etat }, t("action.etat." + etat)) : null),
+          h("td", {}, t("action.statut." + a.statut), a.dateCloture ? h("small", {}, " — " + t("doc.action.cloturee", { date: formaterDate(a.dateCloture) })) : null)))))),
+  ];
+}
 
 function tableau(entetes, lignes) {
   return h("div", { class: "tab-defile" },
@@ -118,6 +150,7 @@ export function rendreSynthese(zone, allerA) {
             s ? t("opportunite.suite." + s.suite) : "—",
           ]))
         : h("p", { class: "aide" }, t("synth.opportunites.aucune"))),
+    bloc("flag", t("synth.actions", { n: listeActions(p).length }), 2, allerA, ...suiviActions(p, () => rendreSynthese(zone, allerA))),
     bloc("tri", t("synth.controles", { n: controles.length }), 2, allerA,
       controles.length
         ? tableau(["col.controles.n", "col.controles.controle", "col.controles.nature", "col.controles.critere", "col.controles.suite"].map((k) => t(k)),

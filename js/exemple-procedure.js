@@ -2,11 +2,12 @@
 // (PR-REA-01) d'une organisation FICTIVE (« Entreprise Exemple », V0). Processus inspiré d'un exemple générique de management des
 // processus (restaurant) ; redessiné avec nos propres formes et nos propres mots, sans reproduire aucune figure ni aucun texte d'une
 // source tierce. Rien n'y est propre à une entreprise réelle : l'application sert à toute organisation, cet exemple ne sert qu'à essayer.
+// v1.4 : deux actions de suivi (une sur le risque de l'instruction 1, une sur son opportunité) et une criticité résiduelle.
 // v0.28 : cet exemple illustre l'appréciation des risques (règle Impact = 4 → critique) ET des opportunités (intérêt × faisabilité).
 // Les 11 sections suivent le modèle standard ; les sections 5, 6 et 9 sont recalculées (bloc « genere ») à partir des rôles, des
 // instructions, des risques et des opportunités. Le texte est resserré pour tenir en 5 pages.
 
-import { nouvelleProcedure, nouvelleEtape, nouveauRisque, nouvelleOpportunite, nouvelleAlternative, nouvelleRevision } from "./model.js";
+import { nouvelleProcedure, nouvelleEtape, nouveauRisque, nouvelleOpportunite, nouvelleAction, nouvelleAlternative, nouvelleRevision } from "./model.js";
 
 export function exempleProcedure() {
   const p = nouvelleProcedure();
@@ -41,8 +42,11 @@ export function exempleProcedure() {
   p.etapes = [
     e({ roleId: accueil.id, libelle: "Accueillir le client", entree: "Demande de repas", entreeDe: "client", sortie: "Client pris en charge, à placer",
       outils: [{ id: "o1", type: "document", nom: "Outil de réservation" }],
-      risques: [r({ id: "k1", risque: "Attente sans prise en charge, surréservation ou réservation perdue", causes: "Outils multiples, pic d'affluence", gravite: "3", probabilite: "3", mesure: "Outil de réservation unique ; prise en charge en moins de 2 minutes ; liste d'attente" })],
-      opportunites: [o({ id: "p1", opportunite: "Réservation en ligne et plan de salle numérique", benefice: "Moins de réservations perdues, meilleure rotation", interet: "3", faisabilite: "2" })] }),
+      risques: [r({ id: "k1", risque: "Attente sans prise en charge, surréservation ou réservation perdue", causes: "Outils multiples, pic d'affluence", gravite: "3", probabilite: "3", mesure: "Outil de réservation unique ; prise en charge en moins de 2 minutes ; liste d'attente",
+        graviteResiduelle: "3", probabiliteResiduelle: "1",
+        actions: [nouvelleAction({ id: "t1", intitule: "Regrouper les réservations dans un outil unique", porteur: "Responsable de l'accueil", echeance: "2026-09-15", statut: "efficace", preuve: "Aucune réservation perdue sur le mois de septembre", dateCloture: "2026-09-30" })] })],
+      opportunites: [o({ id: "p1", opportunite: "Réservation en ligne et plan de salle numérique", benefice: "Moins de réservations perdues, meilleure rotation", interet: "3", faisabilite: "2",
+        actions: [nouvelleAction({ id: "t2", intitule: "Comparer trois solutions de réservation en ligne", porteur: "Directeur du restaurant", echeance: "2026-12-15", statut: "encours" })] })] }),
     e({ roleId: maitre.id, libelle: "Placer le client", entree: "Client à placer", entreeDe: "Accueil", sortie: "Client installé à sa table" }),
     e({ roleId: maitre.id, libelle: "Prendre la commande", entree: "Client installé", sortie: "Commande à préparer", versQui: "Cuisine",
       outils: [{ id: "o2", type: "document", nom: "Bon de commande" }, { id: "o3", type: "document", nom: "Carte des allergènes" }],

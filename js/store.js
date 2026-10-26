@@ -3,8 +3,8 @@
 // modification, tous les « abonnés » (le dessin, le diagnostic…) sont prévenus et se mettent à jour.
 
 import {
-  nouvelleProcedure, nouvelleEtape, nouveauBloc, nouveauCorps, nouveauRisque, nouvelleOpportunite, nouvelleAlternative, nouvelleRevision, nouvelId, signatureContenu,
-  TYPES_OUTIL, TYPES_DOCUMENT, SECTIONS, MAX_BLOCS, MAX_LIGNES, MAX_COLONNES, MAX_RISQUES, MAX_OPPORTUNITES, MAX_ALTERNATIVES, NATURES_CONTROLE,
+  nouvelleProcedure, nouvelleEtape, nouveauBloc, nouveauCorps, nouveauRisque, nouvelleOpportunite, nouvelleAction, nouvelleAlternative, nouvelleRevision, nouvelId, signatureContenu,
+  TYPES_OUTIL, TYPES_DOCUMENT, SECTIONS, MAX_BLOCS, MAX_LIGNES, MAX_COLONNES, MAX_RISQUES, MAX_OPPORTUNITES, MAX_ALTERNATIVES, NATURES_CONTROLE, MAX_ACTIONS, STATUTS_ACTION,
   domaineValide, SIGNATAIRES, MAX_REVISIONS, OPERATEURS, NATURES_CONTRAINTE, LOGO_MAX_OCTETS, LETTRES_RACI, LETTRES_RACI_AUTRES, lettreRaci,
   TYPES_MACRO, MAX_ALTERNATIVES_MACRO,
   nouvelleInstruction, nouvelleOperation, nouveauControle, nouvelleCorrective, MAX_OPERATIONS_SAISIE, MAX_CONTROLES, MAX_CORRECTIVES,
@@ -362,7 +362,8 @@ export function supprimerOutil(etapeId, outilId) {
 }
 
 // ---------- Risques maîtrisés par une instruction (alimentent la section 10) ----------
-const CHAMPS_RISQUE = ["risque", "causes", "gravite", "probabilite", "mesure"];
+const CHAMPS_RISQUE = ["risque", "causes", "gravite", "probabilite", "mesure", "graviteResiduelle", "probabiliteResiduelle"];
+const COTES_RISQUE = ["gravite", "probabilite", "graviteResiduelle", "probabiliteResiduelle"];
 
 function etapeDe(id) {
   return procedure.etapes.find((e) => e.id === id);
@@ -389,10 +390,10 @@ export function modifierRisque(etapeId, risqueId, champ, valeur) {
   const etape = etapeDe(etapeId);
   const risque = etape && etape.risques.find((r) => r.id === risqueId);
   if (!risque || !CHAMPS_RISQUE.includes(champ)) return;
-  if ((champ === "gravite" || champ === "probabilite") && !["", "1", "2", "3", "4"].includes(valeur)) return;
+  if (COTES_RISQUE.includes(champ) && !["", "1", "2", "3", "4"].includes(valeur)) return;
   avant("risque:" + risqueId + champ);
   risque[champ] = valeur;
-  apres(champ === "gravite" || champ === "probabilite"); // la criticité affichée dépend de ces deux champs
+  apres(COTES_RISQUE.includes(champ)); // la criticité (initiale ou résiduelle) affichée dépend de ces champs
 }
 
 export function supprimerRisque(etapeId, risqueId) {
@@ -437,6 +438,44 @@ export function supprimerOpportunite(etapeId, oppId) {
   if (!etape) return;
   avant();
   etape.opportunites = (etape.opportunites || []).filter((o) => o.id !== oppId);
+  apres(true);
+}
+
+// ---------- Actions de suivi d'un risque ou d'une opportunité (v1.4) ----------
+// « porteurDe » : le risque (type "risque") ou l'opportunité (type "opportunite") qui porte la liste d'actions.
+const CHAMPS_ACTION = ["intitule", "porteur", "echeance", "statut", "preuve", "dateCloture"];
+
+function porteurDe(etapeId, type, parentId) {
+  const etape = etapeDe(etapeId);
+  if (!etape) return null;
+  const liste = type === "risque" ? etape.risques : type === "opportunite" ? (etape.opportunites || []) : [];
+  return liste.find((x) => x.id === parentId) || null;
+}
+
+export function ajouterAction(etapeId, type, parentId) {
+  const parent = porteurDe(etapeId, type, parentId);
+  if (!parent || (parent.actions || []).length >= MAX_ACTIONS) return;
+  avant();
+  (parent.actions = parent.actions || []).push(nouvelleAction());
+  apres(true);
+}
+
+export function modifierAction(etapeId, type, parentId, actionId, champ, valeur) {
+  const parent = porteurDe(etapeId, type, parentId);
+  const action = parent && (parent.actions || []).find((a) => a.id === actionId);
+  if (!action || !CHAMPS_ACTION.includes(champ)) return;
+  if (champ === "statut" && !STATUTS_ACTION.includes(valeur)) return;
+  if ((champ === "echeance" || champ === "dateCloture") && valeur !== "" && !DATE_ISO.test(valeur)) return;
+  avant("action:" + actionId + champ);
+  action[champ] = valeur;
+  apres(["statut", "echeance", "dateCloture"].includes(champ)); // l'état affiché (retard, échéance proche, close) dépend de ces champs
+}
+
+export function supprimerAction(etapeId, type, parentId, actionId) {
+  const parent = porteurDe(etapeId, type, parentId);
+  if (!parent) return;
+  avant();
+  parent.actions = (parent.actions || []).filter((a) => a.id !== actionId);
   apres(true);
 }
 
@@ -936,8 +975,9 @@ export function dupliquerEtape(id) {
   avant();
   const copieEtape = { ...copie(procedure.etapes[i]), id: nouvelId("e") };
   copieEtape.outils = copieEtape.outils.map((o) => ({ ...o, id: nouvelId("o") }));
-  copieEtape.risques = copieEtape.risques.map((r) => ({ ...r, id: nouvelId("k") }));
-  copieEtape.opportunites = (copieEtape.opportunites || []).map((o) => ({ ...o, id: nouvelId("o") }));
+  const copieActions = (x) => (x.actions || []).map((a) => ({ ...a, id: nouvelId("t") })); // v1.4 : la copie n'est pas liée à l'original
+  copieEtape.risques = copieEtape.risques.map((r) => ({ ...r, id: nouvelId("k"), actions: copieActions(r) }));
+  copieEtape.opportunites = (copieEtape.opportunites || []).map((o) => ({ ...o, id: nouvelId("o"), actions: copieActions(o) }));
   copieEtape.alternatives = copieEtape.alternatives.map((a) => ({ ...a, id: nouvelId("a") }));
   procedure.etapes.splice(i + 1, 0, copieEtape);
   apres(true);
@@ -1116,6 +1156,24 @@ function nettoyerOutils(brut) {
   return propres;
 }
 
+// v1.4 : actions de suivi (statut dans la liste, dates AAAA-MM-JJ, textes bornés).
+function nettoyerActions(brut) {
+  if (!Array.isArray(brut)) return [];
+  const vus = new Set();
+  const propres = [];
+  brut.slice(0, MAX_ACTIONS).forEach((a) => {
+    if (!a || typeof a !== "object") return;
+    let id = idPropre(a.id);
+    if (!id || vus.has(id)) id = nouvelId("t");
+    vus.add(id);
+    propres.push({
+      id, intitule: texteCourt(a.intitule, 500), porteur: texteCourt(a.porteur, 200), echeance: dateOuVide(a.echeance),
+      statut: STATUTS_ACTION.includes(a.statut) ? a.statut : "afaire", preuve: texteCourt(a.preuve, 1000), dateCloture: dateOuVide(a.dateCloture),
+    });
+  });
+  return propres;
+}
+
 function nettoyerRisques(brut) {
   if (!Array.isArray(brut)) return [];
   const vus = new Set();
@@ -1129,6 +1187,7 @@ function nettoyerRisques(brut) {
     propres.push({
       id, risque: texteCourt(r.risque, 500), causes: texteCourt(r.causes, 500),
       gravite: cote(r.gravite), probabilite: cote(r.probabilite), mesure: texteCourt(r.mesure, 1000),
+      graviteResiduelle: cote(r.graviteResiduelle), probabiliteResiduelle: cote(r.probabiliteResiduelle), actions: nettoyerActions(r.actions),
     });
   });
   return propres;
@@ -1147,7 +1206,7 @@ function nettoyerOpportunites(brut) {
     const cote = (v) => (["1", "2", "3"].includes(String(v)) ? String(v) : "");
     propres.push({
       id, opportunite: texteCourt(o.opportunite, 500), benefice: texteCourt(o.benefice, 500),
-      interet: cote(o.interet), faisabilite: cote(o.faisabilite),
+      interet: cote(o.interet), faisabilite: cote(o.faisabilite), actions: nettoyerActions(o.actions),
     });
   });
   return propres;

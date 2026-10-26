@@ -5,7 +5,7 @@
 //
 // gravite : "erreur" (règle du langage enfreinte) | "alerte" (à vérifier) | "ok"
 
-import { partiesDeLaFleche } from "./model.js";
+import { partiesDeLaFleche, criticite, scoreOpportunite, STATUTS_ACTION_OUVERTS } from "./model.js";
 
 // Code d'une procédure selon la nomenclature TYPE-PROCESSUS-NN (ex. PR-ACH-05) ; le type (PR) est celui de l'organisation.
 const formatProcedure = (type) => new RegExp("^" + type + "-[A-Z][A-Z0-9]{1,4}-\\d{2,3}$");
@@ -72,6 +72,13 @@ export function verifier(procedure, { nomenclature = NOMENCLATURE_SUPPOSEE } = {
     // Risque maîtrisé : le risque et sa mesure de maîtrise alimentent la section 10 du document.
     if (etape.risques.some((r) => !r.risque.trim() || !r.mesure.trim())) ajouter("alerte", "regle.risque.incomplet", { i });
     if ((etape.opportunites || []).some((o) => !o.opportunite.trim())) ajouter("alerte", "regle.opportunite.incomplet", { i });
+    // v1.4 — suivi des actions (alertes seulement : elles ne bloquent ni la synthèse ni le document).
+    const suivis = [...etape.risques, ...(etape.opportunites || [])];
+    const actions = suivis.flatMap((x) => x.actions || []);
+    if (actions.some((a) => !a.intitule.trim() || !a.porteur.trim() || !a.echeance)) ajouter("alerte", "regle.action.incomplete", { i });
+    if (actions.some((a) => !STATUTS_ACTION_OUVERTS.includes(a.statut) && !a.dateCloture)) ajouter("alerte", "regle.action.sans_cloture", { i });
+    if (etape.risques.some((r) => r.risque.trim() && criticite(r) && criticite(r).niveau === "critique" && !(r.actions || []).length)) ajouter("alerte", "regle.risque.critique_sans_action", { i });
+    if ((etape.opportunites || []).some((o) => o.opportunite.trim() && scoreOpportunite(o) && scoreOpportunite(o).suite === "plan" && !(o.actions || []).length)) ajouter("alerte", "regle.opportunite.plan_sans_action", { i });
     // Indicateur de performance (fanion) : il doit avoir un nom, repris dans le document.
     if (etape.indicateur && etape.indicateur.actif && !etape.indicateur.nom.trim()) ajouter("alerte", "regle.indicateur.sans_nom", { i });
     // … et sa formule, sa cible et sa fréquence alimentent la section 8 : sans elles, la ligne du tableau reste à moitié vide.

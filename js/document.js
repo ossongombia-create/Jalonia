@@ -7,7 +7,7 @@
 // Chaque section contient une liste de « blocs » (paragraphe, sous-titre, tableau, logigramme). Les sections 5, 6 et 9
 // sont construites à partir des rôles, des instructions et des risques maîtrisés.
 
-import { SECTIONS, MODELES_TABLEAU, criticite, scoreOpportunite, LETTRES_RACI, lettreRaci, raciDuRole, raciUtilise, partiesDeLaFleche } from "./model.js";
+import { SECTIONS, MODELES_TABLEAU, criticite, criticiteResiduelle, scoreOpportunite, LETTRES_RACI, lettreRaci, raciDuRole, raciUtilise, partiesDeLaFleche } from "./model.js";
 import { t } from "./i18n.js";
 
 export { SECTIONS };
@@ -51,6 +51,24 @@ export function listeOpportunites(procedure) {
   procedure.etapes.forEach((e, i) => {
     (e.opportunites || []).filter((o) => o.opportunite.trim()).forEach((o) => {
       liste.push({ n: i + 1, etape: e, opportunite: o, score: scoreOpportunite(o) });
+    });
+  });
+  return liste;
+}
+
+// Actions de suivi (v1.4) : une entrée par action, rattachée à son risque ou à son opportunité, dans l'ordre du déroulé.
+// « libelle » : l'intitulé du risque ou de l'opportunité qui porte l'action.
+export function listeActions(procedure) {
+  const liste = [];
+  procedure.etapes.forEach((e, i) => {
+    const suivis = [
+      ...e.risques.map((r) => ({ type: "risque", parent: r, libelle: r.risque })),
+      ...(e.opportunites || []).map((o) => ({ type: "opportunite", parent: o, libelle: o.opportunite })),
+    ];
+    suivis.forEach(({ type, parent, libelle }) => {
+      (parent.actions || []).filter((a) => a.intitule.trim() || a.porteur.trim()).forEach((a) => {
+        liste.push({ n: i + 1, etape: e, type, parent, libelle: libelle.trim(), action: a });
+      });
     });
   });
   return liste;
@@ -172,13 +190,17 @@ function tableauRisques(procedure) {
   return {
     type: "tableau", gabarit: GABARITS.risques, gras1: [0],
     colonnes: ["risque", "mesure", "responsable"].map((k) => t("col.risques." + k)),
-    lignes: listeRisques(procedure).map(({ n, risque, criticite: c, responsable }) => [
-      lignesNonVides([
-        risque.risque,
-        `${t("doc.instruction")} ${n}${c ? ` · ${t("doc.criticite")} ${c.g} × ${c.p} = ${c.valeur} (${t("risque.niveau." + c.niveau)})` : ""}`,
-      ]).join("\n"),
-      risque.mesure, responsable,
-    ].map(cellule)),
+    lignes: listeRisques(procedure).map(({ n, risque, criticite: c, responsable }) => {
+      const r = criticiteResiduelle(risque); // v1.4 : la criticité après les actions, à côté de la cotation initiale
+      return [
+        lignesNonVides([
+          risque.risque,
+          `${t("doc.instruction")} ${n}${c ? ` · ${t("doc.criticite")} ${c.g} × ${c.p} = ${c.valeur} (${t("risque.niveau." + c.niveau)})` : ""}`,
+          r ? `${t("doc.criticite_residuelle")} ${r.g} × ${r.p} = ${r.valeur} (${t("risque.niveau." + r.niveau)})` : "",
+        ]).join("\n"),
+        risque.mesure, responsable,
+      ].map(cellule);
+    }),
   };
 }
 
@@ -195,6 +217,19 @@ function tableauOpportunites(procedure) {
   };
 }
 
+// 9ter. Plan d'actions (v1.4) : Action | Porteur | Échéance | Statut. La première cellule rappelle le risque ou l'opportunité suivi.
+function tableauActions(procedure) {
+  return {
+    type: "tableau", gabarit: GABARITS.actions, gras1: [0],
+    colonnes: ["action", "porteur", "echeance", "statut"].map((k) => t("col.actions." + k)),
+    lignes: listeActions(procedure).map(({ n, type, libelle, action: a }) => [
+      lignesNonVides([a.intitule, `${t("action.type." + type)}${libelle ? ` : ${libelle}` : ""} · ${t("doc.instruction")} ${n}`]).join("\n"),
+      a.porteur, formaterDate(a.echeance),
+      lignesNonVides([t("action.statut." + a.statut), a.dateCloture ? t("doc.action.cloturee", { date: formaterDate(a.dateCloture) }) : ""]).join("\n"),
+    ].map(cellule)),
+  };
+}
+
 // Largeurs des colonnes du modèle (proportions ; les tableaux du modèle font 9200 twips de large).
 export const GABARITS = {
   references: [2000, 2200, 5000],
@@ -205,6 +240,7 @@ export const GABARITS = {
   indicateurs: [2400, 3800, 1700, 1300],
   risques: [3600, 3800, 1800],
   opportunites: [5000, 2200, 2000],
+  actions: [4600, 1900, 1200, 1500],
   enregistrements: [2800, 1700, 2700, 2000],
   entete: [2600, 4200, 2400],
   validation: [2300, 2300, 2300, 2300],
@@ -234,6 +270,10 @@ function blocsSection(cle, procedure) {
       if (listeOpportunites(procedure).length) {
         sortie.push({ type: "paragraphe", texte: t("doc.opportunites.sous_titre") });
         sortie.push(tableauOpportunites(procedure));
+      }
+      if (listeActions(procedure).length) {
+        sortie.push({ type: "paragraphe", texte: t("doc.actions.sous_titre") });
+        sortie.push(tableauActions(procedure));
       }
     }
     else if (b.type === "genere" && cle === "indicateurs") sortie.push(tableauIndicateurs(procedure));

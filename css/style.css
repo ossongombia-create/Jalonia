@@ -351,6 +351,21 @@ button.lien { border: 0 !important; background: none !important; padding: 0 !imp
 .score-opp { display: inline-block; padding: 4px 10px; font-size: .78rem; font-weight: 700; border: 1px solid var(--trait); border-radius: 999px; }
 .score-opp.plan { background: #e7eefb; border-color: var(--sarcelle); }
 .score-opp.etudier { background: var(--fond-liste); border-color: var(--trait); }
+/* v1.4 — actions de suivi : rouge = en retard, orange = échéance dans 15 jours ou moins, gris = close */
+.bloc-actions { margin: 8px 0; padding: 8px 10px; border-left: 3px solid var(--sarcelle); background: var(--fond-liste); border-radius: 0 8px 8px 0; }
+.action-suivi { border: 1.5px solid var(--trait-doux); border-radius: 10px; padding: 6px 10px; margin: 6px 0; background: #fff; }
+.champs-action { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0 12px; align-items: end; }
+.champs-action select, .champs-action input[type="date"] { width: 100%; min-width: 0; }
+.action-suivi.etat-retard { border-color: var(--erreur); }
+.action-suivi.etat-proche { border-color: #d19a1e; }
+.action-suivi.etat-close { opacity: .7; }
+.etat-action { display: inline-block; margin-left: 6px; padding: 1px 8px; font-size: .72rem; font-weight: 700; border-radius: 999px; }
+.etat-action.retard { background: #f9dcda; color: #8a1c14; }
+.etat-action.proche { background: #fdf0d5; color: #7a5200; }
+.tab-actions tr.etat-retard td { background: #fbe9e7; }
+.tab-actions tr.etat-proche td { background: #fdf6e6; }
+.tab-actions tr.etat-close td { color: #777; }
+.case-filtre { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; margin: 4px 0 8px; }
 .apercu-logo { display: block; max-width: 180px; max-height: 70px; margin: 6px 0; border: 1px solid var(--trait); border-radius: 8px; background: #fff; }
 .tab-entete .logo-entete { display: block; margin: 0 auto 3px; max-width: 120px; max-height: 40px; }
 .zone-sections { margin-top: 0; }

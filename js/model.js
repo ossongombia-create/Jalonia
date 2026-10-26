@@ -288,8 +288,9 @@ export function nouvelleAlternative(champs = {}) {
 // Un risque maîtrisé par une instruction. Impact et vraisemblance : 1 à 4 ; criticité = Impact × Vraisemblance.
 // NB : les champs de données restent nommés `gravite` et `probabilite` (compatibilité des fichiers enregistrés et de la
 // signature de validation) ; seuls les LIBELLÉS affichés changent (Impact / Vraisemblance), via i18n (v0.28).
+// v1.4 : impact et vraisemblance RÉSIDUELS (après les actions) et liste d'actions de suivi.
 export function nouveauRisque(champs = {}) {
-  return { id: nouvelId("k"), risque: "", causes: "", gravite: "", probabilite: "", mesure: "", ...champs };
+  return { id: nouvelId("k"), risque: "", causes: "", gravite: "", probabilite: "", mesure: "", graviteResiduelle: "", probabiliteResiduelle: "", actions: [], ...champs };
 }
 
 // Criticité = Impact (g) × Vraisemblance (p). Décision (v0.28, méthode de management des processus / ISO 9001 §6.1) :
@@ -305,10 +306,15 @@ export function criticite(risque) {
   return { valeur, g, p, niveau };
 }
 
+// Criticité résiduelle (v1.4) : même calcul, sur l'impact et la vraisemblance notés après les actions.
+export function criticiteResiduelle(risque) {
+  return criticite({ gravite: risque.graviteResiduelle, probabilite: risque.probabiliteResiduelle });
+}
+
 // Une opportunité d'amélioration portée par une instruction (v0.28). Cotation : intérêt × faisabilité, 1 à 3 chacun.
 // Impact « positif » (par opposition au risque) ; le score oriente la suite : ≥ 6 → plan d'amélioration, sinon à étudier.
 export function nouvelleOpportunite(champs = {}) {
-  return { id: nouvelId("o"), opportunite: "", benefice: "", interet: "", faisabilite: "", ...champs };
+  return { id: nouvelId("o"), opportunite: "", benefice: "", interet: "", faisabilite: "", actions: [], ...champs };
 }
 export function scoreOpportunite(opp) {
   const i = Number(opp.interet);
@@ -317,6 +323,38 @@ export function scoreOpportunite(opp) {
   if (!(Number.isInteger(i) && Number.isInteger(f) && i >= 1 && i <= 3 && f >= 1 && f <= 3)) return null;
   const valeur = i * f;
   return { valeur, i, f, suite: valeur >= 6 ? "plan" : "etudier" };
+}
+
+// ---------- Actions de suivi d'un risque ou d'une opportunité (v1.4) ----------
+// Une action : intitulé, porteur (texte libre : une personne ou une fonction, pas forcément un rôle de la procédure),
+// échéance (AAAA-MM-JJ), statut, preuve ou commentaire, date de clôture (AAAA-MM-JJ).
+export const STATUTS_ACTION = ["afaire", "encours", "realisee", "efficace", "close"];
+export const STATUTS_ACTION_OUVERTS = ["afaire", "encours"]; // l'action reste à mener : elle peut être en retard
+export const MAX_ACTIONS = 5; // par risque ou par opportunité
+export const JOURS_ECHEANCE_PROCHE = 15;
+
+export function nouvelleAction(champs = {}) {
+  return { id: nouvelId("t"), intitule: "", porteur: "", echeance: "", statut: "afaire", preuve: "", dateCloture: "", ...champs };
+}
+
+// État de suivi d'une action à une date donnée (AAAA-MM-JJ, passée par l'appelant : jamais l'horloge ici) :
+//   « close »  : réalisée, efficace ou close ;
+//   « retard » : encore ouverte et échéance dépassée ;
+//   « proche » : encore ouverte et échéance dans les JOURS_ECHEANCE_PROCHE jours ;
+//   « ouverte » : encore ouverte, échéance plus lointaine ou non fixée.
+export function etatAction(action, aujourdhui) {
+  if (!STATUTS_ACTION_OUVERTS.includes(action.statut)) return "close";
+  const jour = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000 : null);
+  const e = jour(action.echeance);
+  const a = jour(aujourdhui);
+  if (e === null || a === null) return "ouverte";
+  if (e < a) return "retard";
+  return e - a <= JOURS_ECHEANCE_PROCHE ? "proche" : "ouverte";
+}
+
+// La date du jour au format AAAA-MM-JJ (heure locale) : à passer à etatAction.
+export function dateDuJour(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 // Empreinte du contenu (identification, rôles, instructions, corps), indépendante de l'ordre des clés :
@@ -341,7 +379,14 @@ export function signatureContenu(p) {
   };
   // v0.19 : formule, cible et fréquence de l'indicateur n'entrent dans la signature que si elles sont renseignées.
   const sansChampsIndicateurVides = (k, v) => (k === "indicateur" && v ? Object.fromEntries(Object.entries(v).filter(([c, x]) => !(["formule", "cible", "frequence"].includes(c) && !x))) : v);
-  const etapes = p.etapes.map((e) => Object.fromEntries(Object.entries(e).filter(([k, v]) => !(vides[k] && vides[k](v))).map(([k, v]) => [k, sansChampsIndicateurVides(k, v)])));
+  // v1.4 : les actions et la cotation résiduelle d'un risque ou d'une opportunité n'entrent dans la signature que si elles sont renseignées.
+  const sansSuiviVide = (x) => Object.fromEntries(Object.entries(x).filter(([k, v]) => !((k === "actions" && (!v || v.length === 0)) || ((k === "graviteResiduelle" || k === "probabiliteResiduelle") && !v))));
+  const etapesSansSuivi = p.etapes.map((e) => ({
+    ...e,
+    ...(Array.isArray(e.risques) ? { risques: e.risques.map(sansSuiviVide) } : {}),
+    ...(Array.isArray(e.opportunites) ? { opportunites: e.opportunites.map(sansSuiviVide) } : {}),
+  }));
+  const etapes = etapesSansSuivi.map((e) => Object.fromEntries(Object.entries(e).filter(([k, v]) => !(vides[k] && vides[k](v))).map(([k, v]) => [k, sansChampsIndicateurVides(k, v)])));
   // v0.19 : le tableau généré de la section 8 (recalculé à partir des instructions) n'entre pas dans la signature ; un fichier validé avant reste validé.
   const corps = p.corps && Array.isArray(p.corps.indicateurs) ? { ...p.corps, indicateurs: p.corps.indicateurs.filter((b) => b.type !== "genere") } : p.corps;
   // v0.17 : « information » (panier de la flèche amont / aval) n'entre dans la signature que s'il est renseigné.

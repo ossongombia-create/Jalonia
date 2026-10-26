@@ -14,7 +14,7 @@ import { enregistrerJSON } from "./sorties.js";
 import { lire as lireCartographie } from "./cartographie-store.js";
 import { fluxDuProcessus, libelleProcessus, processusDuTexte } from "./cartographie.js";
 import { questionnement } from "./questionnement.js";
-import { LETTRES_RACI, lettreRaci, TYPES_MACRO, MAX_ALTERNATIVES_MACRO, TYPES_OUTIL, partiesDeLaFleche, MAX_RISQUES, MAX_OPPORTUNITES, MAX_ALTERNATIVES, NATURES_CONTROLE, NATURES_CONTRAINTE, OPERATEURS, criticite, scoreOpportunite } from "./model.js";
+import { LETTRES_RACI, lettreRaci, TYPES_MACRO, MAX_ALTERNATIVES_MACRO, TYPES_OUTIL, partiesDeLaFleche, MAX_RISQUES, MAX_OPPORTUNITES, MAX_ALTERNATIVES, NATURES_CONTROLE, NATURES_CONTRAINTE, OPERATEURS, criticite, criticiteResiduelle, scoreOpportunite, STATUTS_ACTION, MAX_ACTIONS, etatAction, dateDuJour } from "./model.js";
 
 // ---------- État de l'écran ----------
 let vue = null; // { type: "roles" | "debut" | "instruction" | "fin", id? }
@@ -414,7 +414,7 @@ function basculerDecision(e, actif) {
 
 // Risques : confirmation si un risque a déjà été saisi.
 function basculerRisques(e, actif) {
-  if (!actif && e.risques.some((r) => r.risque.trim() || r.mesure.trim() || r.causes.trim())) {
+  if (!actif && e.risques.some((r) => r.risque.trim() || r.mesure.trim() || r.causes.trim() || (r.actions || []).length)) {
     if (!confirm(t("form.risque.confirmer"))) return;
   }
   store.basculerRisques(e.id, actif);
@@ -422,7 +422,7 @@ function basculerRisques(e, actif) {
 
 // Opportunités : confirmation si une opportunité a déjà été saisie.
 function basculerOpportunites(e, actif) {
-  if (!actif && (e.opportunites || []).some((o) => o.opportunite.trim() || o.benefice.trim())) {
+  if (!actif && (e.opportunites || []).some((o) => o.opportunite.trim() || o.benefice.trim() || (o.actions || []).length)) {
     if (!confirm(t("form.opportunite.confirmer"))) return;
   }
   store.basculerOpportunites(e.id, actif);
@@ -616,6 +616,7 @@ function detailRisques(e) {
       return h("label", { class: "champ" }, h("span", {}, t("form.risque." + nom)), sel);
     };
     const c = criticite(r);
+    const cr = criticiteResiduelle(r);
     return h("div", { class: "sous-carte" },
       h("div", { class: "entete-sous" }, h("strong", {}, t("form.risque.n", { n: k + 1 })),
         boutonIcone("trash", t("form.supprimer"), () => store.supprimerRisque(e.id, r.id), { classe: "suppr" })),
@@ -623,7 +624,10 @@ function detailRisques(e) {
       champ(t("form.risque.causes"), r.causes, (v) => store.modifierRisque(e.id, r.id, "causes", v)),
       h("div", { class: "cotes" }, cote("gravite", r.gravite), cote("probabilite", r.probabilite),
         c ? h("span", { class: "criticite " + c.niveau }, t("form.risque.criticite", { g: c.g, p: c.p, v: c.valeur, niveau: t("risque.niveau." + c.niveau) })) : null),
-      champ(t("form.risque.mesure"), r.mesure, (v) => store.modifierRisque(e.id, r.id, "mesure", v), { requis: true, placeholder: t("form.risque.mesure.ph") }));
+      champ(t("form.risque.mesure"), r.mesure, (v) => store.modifierRisque(e.id, r.id, "mesure", v), { requis: true, placeholder: t("form.risque.mesure.ph") }),
+      blocActions(e, "risque", r),
+      h("div", { class: "cotes" }, cote("graviteResiduelle", r.graviteResiduelle), cote("probabiliteResiduelle", r.probabiliteResiduelle),
+        cr ? h("span", { class: "criticite " + cr.niveau }, t("form.risque.residuelle", { g: cr.g, p: cr.p, v: cr.valeur, niveau: t("risque.niveau." + cr.niveau) })) : null));
   });
   return [
     h("p", { class: "aide" }, t("form.risque.aide")),
@@ -631,6 +635,41 @@ function detailRisques(e) {
     e.risques.length < MAX_RISQUES
       ? h("div", {}, h("button", { type: "button", class: "discret", onclick: () => store.ajouterRisque(e.id) }, t("form.risque.ajouter"))) : null,
   ];
+}
+
+// Actions de suivi d'un risque ou d'une opportunité (v1.4) → tableau de suivi (synthèse) et « Plan d'actions » (section 9).
+function blocActions(e, type, parent) {
+  const actions = parent.actions || [];
+  const aujourdhui = dateDuJour();
+  const modifier = (a, nom) => (v) => store.modifierAction(e.id, type, parent.id, a.id, nom, v);
+  const date = (libelle, valeur, quandChange) => {
+    const saisie = h("input", { type: "date", value: valeur || "", "aria-label": libelle });
+    saisie.addEventListener("change", () => quandChange(saisie.value));
+    return h("label", { class: "champ" }, h("span", {}, libelle), saisie);
+  };
+  const lignes = actions.map((a, k) => {
+    const statut = h("select", { "aria-label": t("form.action.statut") },
+      ...STATUTS_ACTION.map((v) => h("option", { value: v, selected: a.statut === v }, t("action.statut." + v))));
+    statut.addEventListener("change", () => modifier(a, "statut")(statut.value));
+    const etat = etatAction(a, aujourdhui);
+    return h("div", { class: "action-suivi etat-" + etat },
+      h("div", { class: "entete-sous" },
+        h("strong", {}, t("form.action.n", { n: k + 1 })),
+        etat === "retard" || etat === "proche" ? h("span", { class: "etat-action " + etat }, t("action.etat." + etat)) : null,
+        boutonIcone("trash", t("form.supprimer"), () => store.supprimerAction(e.id, type, parent.id, a.id), { classe: "suppr" })),
+      champ(t("form.action.intitule"), a.intitule, modifier(a, "intitule"), { requis: true, placeholder: t("form.action.intitule.ph") }),
+      h("div", { class: "champs-action" },
+        champ(t("form.action.porteur"), a.porteur, modifier(a, "porteur"), { requis: true, placeholder: t("form.action.porteur.ph") }),
+        date(t("form.action.echeance"), a.echeance, modifier(a, "echeance")),
+        h("label", { class: "champ" }, h("span", {}, t("form.action.statut")), statut),
+        date(t("form.action.dateCloture"), a.dateCloture, modifier(a, "dateCloture"))),
+      champ(t("form.action.preuve"), a.preuve, modifier(a, "preuve"), { placeholder: t("form.action.preuve.ph") }));
+  });
+  return h("div", { class: "bloc-actions" },
+    h("p", { class: "aide" }, h("strong", {}, t("form.action.titre")), " — ", t("form.action.aide")),
+    ...lignes,
+    actions.length < MAX_ACTIONS
+      ? h("div", {}, h("button", { type: "button", class: "discret", onclick: () => store.ajouterAction(e.id, type, parent.id) }, t("form.action.ajouter"))) : null);
 }
 
 // Opportunités d'amélioration : intitulé + bénéfice, cotées intérêt × faisabilité → section 9 (v0.28).
@@ -651,7 +690,8 @@ function detailOpportunites(e) {
       champ(t("form.opportunite.opportunite"), o.opportunite, (v) => store.modifierOpportunite(e.id, o.id, "opportunite", v), { requis: true, placeholder: t("form.opportunite.opportunite.ph") }),
       champ(t("form.opportunite.benefice"), o.benefice, (v) => store.modifierOpportunite(e.id, o.id, "benefice", v), { placeholder: t("form.opportunite.benefice.ph") }),
       h("div", { class: "cotes" }, cote("interet", o.interet), cote("faisabilite", o.faisabilite),
-        s ? h("span", { class: "score-opp " + s.suite }, t("form.opportunite.score", { i: s.i, f: s.f, v: s.valeur, suite: t("opportunite.suite." + s.suite) })) : null));
+        s ? h("span", { class: "score-opp " + s.suite }, t("form.opportunite.score", { i: s.i, f: s.f, v: s.valeur, suite: t("opportunite.suite." + s.suite) })) : null),
+      blocActions(e, "opportunite", o));
   });
   return [
     h("p", { class: "aide" }, t("form.opportunite.aide")),
