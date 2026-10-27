@@ -129,6 +129,7 @@ export function rendreRetour() {
     h("div", { class: "retour-ligne" }, ...actions.filter(Boolean)),
     !url && !mail ? h("p", { class: "aide alerte-douce", id: "retour-pas-configure" }, t("retour.pas_configure")) : null,
     h("p", { class: "aide-champ" }, t("retour.confidentialite")),
+    h("p", { class: "aide-champ" }, t("retour.finalite")),
     h("p", {}, h("a", { href: "guide-" + langueCourante() + ".html", target: "_blank", rel: "noopener" }, t("retour.guide"))),
   );
   $("retour-titre").textContent = t("retour.titre");

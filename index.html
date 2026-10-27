@@ -2,6 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <!-- v1.6 — sécurité : le navigateur n'exécute que les scripts de ce site (aucun script en ligne, aucun site tiers), n'ouvre aucun
+       objet embarqué et n'envoie aucune adresse de provenance. Les styles en ligne restent permis (largeurs de colonnes, dessins SVG). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- La page n'est pas référencée par les moteurs de recherche : le lien est partagé directement (décision à revoir si l'on veut être trouvé). -->
   <meta name="robots" content="noindex, nofollow">
@@ -69,6 +73,7 @@
           </div>
         </div>
         <span id="etat-fichier" class="etat-fichier" role="status" hidden data-i18n-titre="fichier.non_enregistre.aide"><span data-icone="warn" data-taille="16"></span><span data-i18n="fichier.non_enregistre"></span></span>
+        <span id="etat-stockage" class="etat-fichier" role="status" hidden><span data-icone="warn" data-taille="16"></span><span id="etat-stockage-texte"></span></span>
         <button type="button" id="btn-enregistrer" class="bouton-plein"><span data-icone="save" data-taille="17"></span><span data-i18n="fichier.enregistrer"></span></button>
         <input type="file" id="fichier-entree" accept=".json,application/json" hidden>
         <input type="file" id="fichier-word" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>

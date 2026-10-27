@@ -16,6 +16,8 @@ import { rendreAccueil } from "./accueil-ui.js";
 import * as vue from "./vue.js";
 import { estDocumentVide } from "./model.js";
 import { VERSION } from "./version.js";
+import { abonnerStockage, stockageEnEchec, estCleDeTravail, effacerDonneesLocales } from "./stockage.js";
+import { fichierAcceptable, TAILLE_MAX_JSON, TAILLE_MAX_WORD } from "./fichiers.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -75,7 +77,26 @@ function actualiserResultat() {
 // « Non enregistré en fichier » : un repère à côté d'Enregistrer tant que le document diffère du dernier fichier .json (le brouillon, lui, reste dans le navigateur).
 function actualiserEtatFichier() {
   $("etat-fichier").hidden = !store.nonEnregistre();
+  actualiserEtatStockage();
 }
+
+// v1.6 — « Brouillon non gardé » / « Ouvert dans un autre onglet » : le navigateur n'a pas pu garder le travail (stockage plein
+// ou désactivé), ou un autre onglet de l'outil écrit le même brouillon. Dans les deux cas, enregistrer en fichier .json protège le travail.
+let autreOnglet = false;
+function actualiserEtatStockage() {
+  const cle = stockageEnEchec() ? "stockage.echec" : autreOnglet ? "stockage.autre_onglet" : "";
+  const repere = $("etat-stockage");
+  repere.hidden = !cle;
+  if (!cle) return;
+  $("etat-stockage-texte").textContent = t(cle);
+  repere.title = t(cle + "_aide");
+}
+abonnerStockage(actualiserEtatStockage);
+window.addEventListener("storage", (evenement) => {
+  if (evenement.key !== null && !estCleDeTravail(evenement.key)) return; // un simple réglage d'affichage : sans conséquence
+  autreOnglet = true;
+  actualiserEtatStockage();
+});
 
 // ----- Diagnostic en bas de page : réductible, l'état est retenu dans le navigateur -----
 // v0.15 : replié par défaut (la bande montre le résumé et le premier message) ; un clic déplie la liste complète.
@@ -196,19 +217,20 @@ document.addEventListener("document-remplace", () => parcours.apresChargement())
 $("btn-ouvrir").addEventListener("click", () => $("fichier-entree").click());
 $("fichier-entree").addEventListener("change", (evenement) => {
   const fichier = evenement.target.files[0];
+  evenement.target.value = ""; // v1.6 : vidé tout de suite, pour pouvoir rechoisir le même fichier même après un refus
   if (!fichier) return;
-  if (fichier.size > 2_000_000) {
+  if (!fichierAcceptable(fichier, { extension: "json", tailleMax: TAILLE_MAX_JSON })) {
     alert(t("fichier.illisible"));
     return;
   }
   const lecteur = new FileReader();
+  lecteur.onerror = () => alert(t("fichier.illisible"));
   lecteur.onload = () => {
     try {
       if (confirmerRemplacement()) { store.importerJSON(String(lecteur.result)); parcours.apresChargement(); }
     } catch (e) {
       alert(t("fichier.illisible"));
     }
-    evenement.target.value = "";
   };
   lecteur.readAsText(fichier);
 });
@@ -231,7 +253,7 @@ $("fichier-word").addEventListener("change", async (evenement) => {
   const fichier = evenement.target.files[0];
   evenement.target.value = "";
   if (!fichier) return;
-  if (fichier.size > 10_000_000 || !/\.docx$/i.test(fichier.name)) {
+  if (!fichierAcceptable(fichier, { extension: "docx", tailleMax: TAILLE_MAX_WORD })) {
     afficherRapport([{ gravite: "erreur", cle: "import.fichier_refuse" }]);
     return;
   }
@@ -251,7 +273,16 @@ $("fichier-word").addEventListener("change", async (evenement) => {
 });
 
 // ----- Mentions et licences (colonne de gauche, accueil) -----
-preparerFenetreMentions();
+// v1.6 : « Effacer toutes mes données de ce navigateur » (droit à l'effacement). Après confirmation, tout ce que l'outil garde
+// dans le navigateur est effacé, puis la page repart de zéro (sans l'alerte « non enregistré » : c'est voulu).
+let quitterSansAlerte = false;
+function effacerToutesLesDonnees() {
+  if (!confirm(t("mentions.effacer.confirmer"))) return;
+  effacerDonneesLocales();
+  quitterSansAlerte = true;
+  location.reload();
+}
+preparerFenetreMentions({ effacer: effacerToutesLesDonnees });
 $("btn-mentions").addEventListener("click", ouvrirMentions);
 
 // ----- Accueil « Mon espace » : les actions qu'il propose sont celles du menu Fichier et des fenêtres existantes -----
@@ -275,8 +306,9 @@ store.abonnerEnregistrement(actualiserEtatFichier);
 
 // ----- Alerte avant de quitter : le navigateur demande confirmation quand le document n'est pas enregistré en fichier -----
 // (le texte de la demande est celui du navigateur ; l'explication est donnée par le repère « Non enregistré en fichier »).
+// v1.6 : la cartographie compte aussi (elle n'appartient à aucun document, mais se perd de la même façon).
 window.addEventListener("beforeunload", (evenement) => {
-  if (!store.nonEnregistre()) return;
+  if (quitterSansAlerte || (!store.nonEnregistre() && !cartographie.nonEnregistree())) return;
   evenement.preventDefault();
   evenement.returnValue = ""; // requis par certains navigateurs pour afficher la demande
 });

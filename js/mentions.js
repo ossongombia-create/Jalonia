@@ -1,11 +1,13 @@
 // mentions.js — la fenêtre « Mentions et licences » : version d'essai non commerciale, titulaire des droits (si renseigné dans config.js),
-// « aide à la rédaction, sans garantie », rapport à la méthode, données de l'utilisateur, composants de tiers et leurs licences.
+// « aide à la rédaction, sans garantie », rapport à la méthode, données de l'utilisateur (avec, depuis la v1.6, le bouton
+// « Effacer toutes mes données de ce navigateur »), hébergement et contact, composants de tiers et leurs licences.
 // Les textes viennent de t() ; tout est posé en texte (jamais de HTML injecté).
 
 import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { VERSION } from "./version.js";
 import { CONFIG } from "./config.js";
+import { adresseEmail } from "./retour.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -24,12 +26,19 @@ export const droitsAffiches = () => {
   return titulaire ? t("mentions.droits", { annee: anneeDroits(), titulaire }) : "";
 };
 
+// Le contact affiché : l'adresse de retours de config.js si elle est valide (même contrôle que la fenêtre de retour), sinon "".
+export const contactAffiche = () => adresseEmail(CONFIG.emailRetours);
+
+// Fournie par main.js : efface les données du navigateur, puis recharge la page.
+let effacerDonnees = null;
+
 const rubrique = (titre, ...contenu) => h("section", { class: "mentions-rubrique" }, h("h3", {}, titre), ...contenu);
 
 export function rendreMentions() {
   const contenu = $("mentions-contenu");
   if (!contenu) return;
   const droits = droitsAffiches();
+  const contact = contactAffiche();
   contenu.replaceChildren(
     h("p", { class: "mentions-version" }, t("mentions.version", { version: VERSION })),
     rubrique(t("mentions.essai.titre"),
@@ -37,7 +46,15 @@ export function rendreMentions() {
       droits ? h("p", { class: "mentions-titulaire" }, droits) : null),
     rubrique(t("mentions.aide.titre"), h("p", {}, t("mentions.aide.texte"))),
     rubrique(t("mentions.methode.titre"), h("p", {}, t("mentions.methode.texte"))),
-    rubrique(t("mentions.donnees.titre"), h("p", {}, t("mentions.donnees.texte"))),
+    rubrique(t("mentions.donnees.titre"),
+      h("p", {}, t("mentions.donnees.texte")),
+      h("p", {}, t("mentions.donnees.tiers")),
+      h("p", {}, t("mentions.donnees.retour")),
+      effacerDonnees ? h("button", { type: "button", id: "mentions-effacer", class: "bouton-pilule bouton-effacer", onclick: () => effacerDonnees() }, t("mentions.effacer.bouton")) : null,
+      h("p", { class: "aide-champ" }, t("mentions.effacer.aide"))),
+    rubrique(t("mentions.hebergement.titre"),
+      h("p", {}, t("mentions.hebergement.texte")),
+      h("p", {}, contact ? t("mentions.contact.email", { email: contact }) : t("mentions.contact.retour"))),
     rubrique(t("mentions.licences.titre"),
       h("p", {}, t("mentions.licences.intro")),
       h("ul", {}, h("li", {}, t("mentions.licences.pdfjs")), h("li", {}, t("mentions.licences.police"))),
@@ -51,7 +68,8 @@ export function ouvrirMentions() {
   rendreMentions();
 }
 
-export function preparerFenetreMentions() {
+export function preparerFenetreMentions({ effacer } = {}) {
+  effacerDonnees = typeof effacer === "function" ? effacer : null;
   $("mentions-fermer").addEventListener("click", () => $("fenetre-mentions").close());
   // Un clic sur le fond (hors de la boîte) referme la fenêtre.
   $("fenetre-mentions").addEventListener("click", (evenement) => { if (evenement.target === evenement.currentTarget) evenement.currentTarget.close(); });

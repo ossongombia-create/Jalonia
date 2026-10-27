@@ -694,6 +694,8 @@ dialog#fenetre-mentions::backdrop { background: rgba(0, 58, 73, .6); }
 .mentions-rubrique ul { display: grid; gap: 6px; padding-left: 18px; }
 #mentions-contenu .mentions-titulaire { font-weight: 700; color: var(--encre); }
 #mentions-fermer { margin-left: auto; }
+.mentions-rubrique .bouton-effacer { justify-self: start; color: var(--erreur); border-color: var(--erreur); }
+.mentions-rubrique .bouton-effacer:hover { background: var(--erreur); border-color: var(--erreur); color: #fff; }
 @media (max-width: 1100px) {
   .accueil-grille { grid-template-columns: minmax(0, 1fr); }
 }

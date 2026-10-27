@@ -14,6 +14,8 @@ import { nouvelId } from "./model.js";
 
 const PAGES_MAX = 3;
 const FORMES_MAX = 4000;
+const TEXTES_MAX = 4000; // v1.6 : une cartographie tient en quelques centaines de textes ; au-delà, on s'arrête (PDF démesuré)
+const DELAI_MAX_MS = 30_000; // v1.6 : au-delà, la lecture est abandonnée et pdf.js arrêté (l'onglet ne reste pas bloqué)
 
 // ---------- 1. Lecture du PDF (pdf.js) ----------
 let pdfjsPromesse = null;
@@ -41,6 +43,7 @@ async function miseDePage(page, OPS) {
   const mise = { largeur: vue.width, hauteur: H, textes: [], formes: [] };
   const contenu = await page.getTextContent();
   for (const it of contenu.items) {
+    if (mise.textes.length >= TEXTES_MAX) break;
     if (typeof it.str !== "string" || it.str === "" || !it.transform) continue;
     const [a, b, c, d, e, f] = it.transform;
     const taille = Math.hypot(a, b) || Math.hypot(c, d) || 10;
@@ -95,19 +98,28 @@ async function miseDePage(page, OPS) {
 export async function lireMisePdf(octets) {
   const pdfjs = await chargerPdfjs();
   const tache = pdfjs.getDocument({ data: octets instanceof Uint8Array ? octets : new Uint8Array(octets), isEvalSupported: false, verbosity: 0, disableFontFace: true });
-  const doc = await tache.promise;
+  let minuterie = null;
+  const delai = new Promise((_, rejeter) => {
+    minuterie = setTimeout(() => { tache.destroy(); rejeter(new Error("delai")); }, DELAI_MAX_MS);
+  });
   try {
-    let meilleure = null;
-    let score = -1;
-    for (let n = 1; n <= Math.min(doc.numPages, PAGES_MAX); n += 1) {
-      const mise = await miseDePage(await doc.getPage(n), pdfjs.OPS);
-      const s = mise.textes.filter((t) => FORMAT_CODE_PROCESSUS.test(t.s.trim())).length;
-      if (s > score) { meilleure = mise; score = s; }
-    }
-    return meilleure || { largeur: 0, hauteur: 0, textes: [], formes: [] };
+    return await Promise.race([lirePages(pdfjs, tache), delai]);
   } finally {
+    clearTimeout(minuterie);
     await tache.destroy();
   }
+}
+
+async function lirePages(pdfjs, tache) {
+  const doc = await tache.promise;
+  let meilleure = null;
+  let score = -1;
+  for (let n = 1; n <= Math.min(doc.numPages, PAGES_MAX); n += 1) {
+    const mise = await miseDePage(await doc.getPage(n), pdfjs.OPS);
+    const s = mise.textes.filter((t) => FORMAT_CODE_PROCESSUS.test(t.s.trim())).length;
+    if (s > score) { meilleure = mise; score = s; }
+  }
+  return meilleure || { largeur: 0, hauteur: 0, textes: [], formes: [] };
 }
 
 // Tout-en-un pour l'interface : octets du PDF → { cartographie, rapport }.

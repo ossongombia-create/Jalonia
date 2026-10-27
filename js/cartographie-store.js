@@ -8,12 +8,23 @@
 import {
   nouvelleCartographie, nettoyerCartographie, depuisJSON, versJSON, estVide, POINTS_FIXES, CATEGORIES, MAX_PROCESSUS, MAX_FLUX, MAX_DOCUMENTS, FICHE_CHAMPS, MAX_FICHE, SCHEMAS, SENS,
 } from "./cartographie.js";
-import { nouvelId } from "./model.js";
+import { nouvelId, empreinteDocument } from "./model.js";
+import { ecrire } from "./stockage.js";
 import { exempleCartographie } from "./exemple-carto.js";
 
 const CLE = "qualigramme-app-cartographie";
+const CLE_ENREGISTREE = "qualigramme-app-cartographie-enregistree"; // v1.6 : empreinte de la cartographie au dernier fichier .json
 let carto = charger();
+let empreinteEnregistree = lireEmpreinte();
 const abonnes = new Set();
+
+function lireEmpreinte() {
+  try {
+    return localStorage.getItem(CLE_ENREGISTREE) || "";
+  } catch (e) {
+    return "";
+  }
+}
 
 function charger() {
   try {
@@ -24,13 +35,21 @@ function charger() {
   }
 }
 
+// En cas d'échec (stockage plein ou désactivé), stockage.js le signale : la cartographie reste utilisable jusqu'à la fermeture
+// de la page, et s'enregistre en fichier.
 function sauver() {
-  try {
-    localStorage.setItem(CLE, JSON.stringify(carto));
-  } catch (e) {
-    // stockage indisponible : la cartographie reste utilisable jusqu'à la fermeture de la page, et s'enregistre en fichier.
-  }
+  ecrire(CLE, JSON.stringify(carto));
 }
+
+// ---------- v1.6 : la cartographie est-elle enregistrée dans un fichier .json ? ----------
+// Même règle que pour le document (store.js) : « non enregistrée » = pas vide ET différente du dernier fichier enregistré ou ouvert.
+// main.js s'en sert pour l'alerte avant de quitter la page.
+function considererEnregistree() {
+  empreinteEnregistree = empreinteDocument(carto);
+  ecrire(CLE_ENREGISTREE, empreinteEnregistree);
+}
+export const marquerEnregistree = () => considererEnregistree();
+export const nonEnregistree = () => !estVide(carto) && empreinteDocument(carto) !== empreinteEnregistree;
 
 export const lire = () => carto;
 export function abonner(fn) {
@@ -54,10 +73,13 @@ export function vider() {
   apres(true);
 }
 export function chargerExemple() {
-  return remplacer(exempleCartographie());
+  remplacer(exempleCartographie());
+  considererEnregistree(); // l'exemple se recharge à volonté : le quitter sans l'enregistrer ne perd rien
+  return carto;
 }
 export function importerJSON(contenu) {
   carto = depuisJSON(contenu, { nomenclature: carto.nomenclature });
+  considererEnregistree(); // ouverte depuis un fichier : identique à ce fichier
   apres(true);
   return carto;
 }

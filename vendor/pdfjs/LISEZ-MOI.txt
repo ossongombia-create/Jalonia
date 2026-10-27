@@ -2,3 +2,12 @@ pdf.js (Mozilla) version 6.3.289, build « legacy », minifié — licence Apach
 Utilisé uniquement pour LIRE un PDF de cartographie des processus (menu Fichier > Cartographie des processus > Importer un PDF).
 Chargé à la demande, dans le navigateur : le PDF n'est envoyé nulle part.
 Les fichiers ont l'extension .js (et non .mjs) parce que certains serveurs locaux (Live Server) ne servent pas .mjs avec le bon type de fichier.
+
+Source : https://github.com/mozilla/pdf.js/releases (archive « pdfjs-6.3.289-legacy-dist »).
+Empreintes SHA-256 des fichiers livrés (vérifiées par tests/v160.test.mjs : un fichier modifié fait échouer les tests) :
+  pdf.min.js         f401927e692efc7735e0cd528c490d0dd31b7f0972c122b7040df805be45cce4
+  pdf.worker.min.js  a33cfe728c584fdba4fcc1fd54bcdc2f9f2f13889ddbb5b2bd1d0f8cbe49b84e
+Veille de sécurité (à chaque publication de l'outil) : consulter les avis de sécurité de pdf.js
+(https://github.com/mozilla/pdf.js/security/advisories). En cas de faille, remplacer les deux fichiers par la dernière version
+« legacy », puis mettre à jour ce fichier (version, empreintes), LICENCES-TIERS.md et tests/v160.test.mjs.
+Réglages de sécurité à garder dans js/cartographie-pdf.js : isEvalSupported: false, disableFontFace: true.

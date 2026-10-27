@@ -15,6 +15,7 @@ import { importerPdf } from "./cartographie-pdf.js";
 import { svgCartographie } from "./carto-dessin.js";
 import { construireDocxCarto } from "./exportDocx.js";
 import { BIBLIOTHEQUE } from "./carto-bibliotheque.js";
+import { fichierAcceptable, TAILLE_MAX_JSON } from "./fichiers.js";
 
 const $ = (id) => document.getElementById(id);
 const TAILLE_MAX_PDF = 10_000_000;
@@ -42,7 +43,7 @@ function telecharger(contenu, nom, type) {
 // ---------- Actions de la barre du haut ----------
 async function lirePdf(fichier) {
   if (!fichier) return;
-  if (fichier.size > TAILLE_MAX_PDF || !/\.pdf$/i.test(fichier.name)) {
+  if (!fichierAcceptable(fichier, { extension: "pdf", tailleMax: TAILLE_MAX_PDF })) {
     rapport = [{ gravite: "erreur", cle: "carto.import.fichier_refuse" }];
     rendre();
     return;
@@ -60,9 +61,10 @@ async function lirePdf(fichier) {
 
 function lireJson(fichier) {
   if (!fichier) return;
-  if (fichier.size > 2_000_000) { rapport = [{ gravite: "erreur", cle: "carto.import.fichier_refuse" }]; rendre(); return; }
+  if (!fichierAcceptable(fichier, { extension: "json", tailleMax: TAILLE_MAX_JSON })) { rapport = [{ gravite: "erreur", cle: "carto.import.fichier_refuse" }]; rendre(); return; }
   if (!cs.estVideMaintenant() && !confirm(t("carto.confirmer_remplacer"))) return;
   const lecteur = new FileReader();
+  lecteur.onerror = () => { rapport = [{ gravite: "erreur", cle: "carto.import.json_illisible" }]; rendre(); };
   lecteur.onload = () => {
     try {
       const c = cs.importerJSON(String(lecteur.result));
@@ -79,6 +81,7 @@ function enregistrer() {
   const c = cs.lire();
   const base = (c.organisation || "cartographie").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "cartographie";
   telecharger(cs.exporterJSON(), `cartographie-${base}.json`, "application/json");
+  cs.marquerEnregistree(); // v1.6 : l'alerte avant de quitter la page s'éteint pour la cartographie
 }
 
 function barreActions() {

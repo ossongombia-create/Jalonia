@@ -12,6 +12,7 @@ import {
 } from "./model.js";
 import { exempleProcedure } from "./exemple-procedure.js";
 import { exempleInstruction } from "./exemple-it.js";
+import { ecrire } from "./stockage.js";
 
 const CLE_STOCKAGE = "qualigramme-app-brouillon-v1";
 const CLE_ENREGISTRE = "qualigramme-app-enregistre-v1"; // empreinte du document au dernier enregistrement en fichier .json
@@ -1018,13 +1019,10 @@ export function chargerExempleInstruction() {
 }
 
 // ---------- Sauvegarde locale (navigateur) ----------
+// v1.6 : un échec (stockage plein ou désactivé) n'est plus silencieux : stockage.js le signale, et l'écran prévient
+// que le brouillon n'est plus gardé (l'application continue de fonctionner ; l'enregistrement en fichier .json reste possible).
 function sauvegarderLocalement() {
-  try {
-    localStorage.setItem(CLE_STOCKAGE, JSON.stringify(procedure));
-    localStorage.setItem(CLE_MODIFIE, String(instantModification));
-  } catch (e) {
-    // stockage indisponible (mode privé…) : l'application continue de fonctionner sans brouillon.
-  }
+  if (ecrire(CLE_STOCKAGE, JSON.stringify(procedure))) ecrire(CLE_MODIFIE, String(instantModification));
 }
 
 function charger() {
@@ -1041,11 +1039,7 @@ function charger() {
 // travailler en navigation privée l'efface. « Non enregistré » = le document n'est pas vide ET diffère de celui du dernier fichier .json
 // enregistré ou ouvert (l'empreinte est gardée dans le navigateur pour survivre à un rechargement).
 function memoriserEnregistre() {
-  try {
-    localStorage.setItem(CLE_ENREGISTRE, empreinteEnregistree);
-  } catch (e) {
-    // stockage indisponible : l'information reste valable jusqu'à la fermeture de la page.
-  }
+  ecrire(CLE_ENREGISTRE, empreinteEnregistree); // en cas d'échec, l'information reste valable jusqu'à la fermeture de la page
 }
 function considererEnregistre() {
   empreinteEnregistree = empreinteDocument(procedure);

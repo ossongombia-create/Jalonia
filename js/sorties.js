@@ -88,7 +88,7 @@ async function fabriquerWordIT(procedure) {
 // « Créer l'instruction de travail », qui enregistre la procédure avant d'ouvrir l'instruction à sa place.
 export function enregistrerJSON() {
   const p = store.lire();
-  const nom = String(p.meta.reference || p.meta.titre || "document").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "") || "document";
+  const nom = String(p.meta.reference || p.meta.titre || "document").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "document";
   telecharger(store.exporterJSON(), `${nom}.json`, "application/json");
   store.marquerEnregistre(); // v0.22 : le document est maintenant dans un fichier (l'alerte avant de quitter et le repère « non enregistré » s'éteignent)
 }
