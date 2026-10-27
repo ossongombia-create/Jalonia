@@ -1,4 +1,5 @@
-// carto-dessin.js — le MOTEUR DE DESSIN de la cartographie des processus (niveau 1), rendu « style 09 » (fond blanc épuré, charte ISOPEX).
+// carto-dessin.js — le MOTEUR DE DESSIN de la cartographie des processus (niveau 1), rendu « style 09 » (fond blanc épuré, charte de la marque).
+// v1.5 : ce module dessine le schéma « bandes » ; les sept autres familles de schémas sont dans carto-schemas.js.
 // Dessine les 4 bandes (management, réalisation, support, surveillance & mesure), un nombre VARIABLE de processus par bande, les pods
 // Exigences / Satisfaction, le bandeau Contexte et les flèches structurelles. Le texte saisi est échappé (escapeXML) : aucune injection.
 //
@@ -10,11 +11,12 @@
 
 import { t } from "./i18n.js";
 import { CATEGORIES, processusParCategorie, libelleProcessus } from "./cartographie.js";
+import { svgSchema } from "./carto-schemas.js";
 
-const W = 1600;
-const COULEURS = { management: "#005A70", realisation: "#1F8AA6", support: "#6F5091", verification: "#3F5E8C", "": "#6A7780" };
-const INK = "#1f2a30", MUTED = "#6a7780", TITRE = "#005a70", TRAIT = "#d9d2e6", LAVANDE = "#f6f4f9";
-const FONT = "Outfit, Arial, sans-serif";
+export const W = 1600;
+export const COULEURS = { management: "#005A70", realisation: "#1F8AA6", support: "#6F5091", verification: "#3F5E8C", "": "#6A7780" };
+export const INK = "#1f2a30", MUTED = "#6a7780", TITRE = "#005a70", TRAIT = "#d9d2e6", LAVANDE = "#f6f4f9";
+export const FONT = "Outfit, Arial, sans-serif";
 
 const BANDE_X = 175, BANDE_W = 1260;      // emprise des bandes
 const CARTE_X = 248, CARTE_W = 378;        // première colonne de cartes et largeur d'une carte
@@ -33,12 +35,12 @@ const FLECHES_ENTRE = {
   "support|verification": ["Activités à surveiller", "Résultats de surveillance"],
 };
 
-function escapeXML(s) {
+export function escapeXML(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 }
 
 // Coupe un libellé en lignes (longueur approximative en caractères), au plus maxLignes.
-function couper(nom, maxCar, maxLignes = 2) {
+export function couper(nom, maxCar, maxLignes = 2) {
   const mots = String(nom || "").split(/\s+/).filter(Boolean);
   const lignes = [];
   let cur = "";
@@ -52,24 +54,29 @@ function couper(nom, maxCar, maxLignes = 2) {
 
 // ---------- Géométrie (pur) ----------
 export function disposer(c) {
-  const groupes = processusParCategorie(c || { processus: [] });   // [{ categorie, processus[] }] dans l'ordre, catégories non vides
+  let groupes = processusParCategorie(c || { processus: [] });   // [{ categorie, processus[] }] dans l'ordre, catégories non vides
+  // v1.5 — sens « alterne » : la réalisation en tête et 4 cartes par rang (au lieu de 3), même aire de dessin.
+  const alterne = !!(c && c.sens === "alterne");
+  if (alterne) groupes = [...groupes.filter((g) => g.categorie === "realisation"), ...groupes.filter((g) => g.categorie !== "realisation")];
+  const cols = alterne ? 4 : COLS;
+  const AIRE_W = COLS * CARTE_W + (COLS - 1) * COL_GAP;      // largeur d'un rang plein ; chaque rang est centré dans cette aire
+  const carteW = (AIRE_W - (cols - 1) * COL_GAP) / cols;
   const bandes = [];
   let y = Y_BANDES;
   for (const g of groupes) {
     const n = g.processus.length;
-    const lignes = Math.max(1, Math.ceil(n / COLS));
+    const lignes = Math.max(1, Math.ceil(n / cols));
     const corps = lignes * CARTE_H + (lignes - 1) * LIGNE_GAP;
     const h = Math.max(90, PAD + corps + PAD);
     const couleur = COULEURS[g.categorie] || COULEURS[""];
-    const AIRE_W = COLS * CARTE_W + (COLS - 1) * COL_GAP;   // largeur d'un rang plein ; chaque rang est centré dans cette aire
     const cartes = g.processus.map((p, i) => {
-      const col = i % COLS, lig = Math.floor(i / COLS);
-      const surCeRang = Math.min(COLS, n - lig * COLS);     // nombre de cartes sur ce rang
-      const rangW = surCeRang * CARTE_W + (surCeRang - 1) * COL_GAP;
+      const col = i % cols, lig = Math.floor(i / cols);
+      const surCeRang = Math.min(cols, n - lig * cols);     // nombre de cartes sur ce rang
+      const rangW = surCeRang * carteW + (surCeRang - 1) * COL_GAP;
       const depart = CARTE_X + (AIRE_W - rangW) / 2;        // rang centré horizontalement
-      const x = depart + col * (CARTE_W + COL_GAP);
+      const x = depart + col * (carteW + COL_GAP);
       const cy = y + PAD + lig * (CARTE_H + LIGNE_GAP);
-      return { id: p.id, code: p.code, nom: p.nom || "", couleur, x, y: cy, w: CARTE_W, h: CARTE_H, cx: x + CARTE_W / 2, cyc: cy + CARTE_H / 2 };
+      return { id: p.id, code: p.code, nom: p.nom || "", couleur, x, y: cy, w: carteW, h: CARTE_H, cx: x + carteW / 2, cyc: cy + CARTE_H / 2 };
     });
     bandes.push({ categorie: g.categorie, couleur, x: BANDE_X, y, w: BANDE_W, h, cartes, milieu: y + h / 2 });
     y += h + BANDE_GAP;
@@ -100,8 +107,27 @@ export function planCartographie(c) {
   };
 }
 
+// En-tête commun à tous les schémas : emplacement du logo, titre, organisation, bandeau Contexte (occupe le haut jusqu'à y = 164).
+export function enteteSvg(carto, largeur) {
+  const o = [];
+  const R = (x, y, w, h, r, fill, stroke = "none", sw = 0, extra = "") =>
+    o.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" ${extra}/>`);
+  const T = (x, y, s, sz, fill, w = "400", a = "start", it = false) =>
+    o.push(`<text x="${x}" y="${y}" font-family="${FONT}" font-size="${sz}" font-weight="${w}" fill="${fill}" text-anchor="${a}"${it ? ' font-style="italic"' : ""}>${escapeXML(s)}</text>`);
+  R(40, 26, 150, 70, 10, "transparent", "#b9b0cc", 1.6, 'stroke-dasharray="6 5"');
+  T(115, 66, "[ Logo ]", 14, "#9a8fb3", "600", "middle");
+  T(largeur / 2, 58, (carto.titre || t("carto.titre")).toUpperCase(), 34, TITRE, "800", "middle");
+  T(largeur / 2, 88, carto.organisation || "[ Nom de l'organisation ]", 18, MUTED, "600", "middle", true);
+  R(40, 118, largeur - 80, 46, 23, "#eef4f5");
+  T(70, 147, "CONTEXTE", 15, TITRE, "800");
+  T(190, 147, carto.contexte || "Enjeux internes et externes · parties intéressées · réglementation · changements climatiques", 14, INK, "400");
+  return o;
+}
+
 // ---------- Rendu SVG (chaîne) ----------
+// v1.5 : le schéma « bandes » (historique) est dessiné ici ; les sept autres familles par carto-schemas.js.
 export function svgCartographie(c) {
+  if (c && c.schema && c.schema !== "bandes") return svgSchema(c);
   const d = disposer(c);
   const carto = c || {};
   const o = [];
@@ -119,16 +145,7 @@ export function svgCartographie(c) {
     + '<filter id="sh" x="-6%" y="-6%" width="112%" height="124%"><feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#5b4a78" flood-opacity="0.18"/></filter></defs>');
   R(0, 0, d.W, d.H, 0, "#ffffff");
 
-  // En-tête
-  R(40, 26, 150, 70, 10, "transparent", "#b9b0cc", 1.6, 'stroke-dasharray="6 5"');
-  T(115, 66, "[ Logo ]", 14, "#9a8fb3", "600", "middle");
-  T(d.W / 2, 58, (carto.titre || t("carto.titre")).toUpperCase(), 34, TITRE, "800", "middle");
-  T(d.W / 2, 88, carto.organisation || "[ Nom de l'organisation ]", 18, MUTED, "600", "middle", true);
-
-  // Contexte
-  R(40, 118, d.W - 80, 46, 23, "#eef4f5");
-  T(70, 147, "CONTEXTE", 15, TITRE, "800");
-  T(190, 147, carto.contexte || "Enjeux internes et externes · parties intéressées · réglementation · changements climatiques", 14, INK, "400");
+  o.push(...enteteSvg(carto, d.W));
 
   // Pods latéraux (s'étendent sur toutes les bandes) — sous-texte réparti sur plusieurs lignes, centré
   const podY = d.haut, podH = d.bas - d.haut;
@@ -145,7 +162,7 @@ export function svgCartographie(c) {
   pod(95, "EXIGENCES", 16, carto.exigences || "Besoins et attentes des parties intéressées", "#eaf2fb");
   R(1450, podY, 110, podH, 24, "#6f5091");
   o.push(`<circle cx="1505" cy="${podY + 46}" r="30" fill="#ffffff"/>`);
-  pod(1505, "SATISFACTION", 15, carto.satisfaction || "Exigences des clients et des parties intéressées", "#fdeed3");
+  pod(1505, "SATISFACTION", 13, carto.satisfaction || "Exigences des clients et des parties intéressées", "#fdeed3");
 
   // Diamant Contexte ⇄ première bande
   if (d.bandes.length) {
@@ -167,7 +184,7 @@ export function svgCartographie(c) {
       o.push(`<circle cx="${bx}" cy="${by}" r="${br}" fill="${carte.couleur}"/>`);
       o.push(`<rect x="${bx - br * 0.4}" y="${by - br * 0.4}" width="${br * 0.8}" height="${br * 0.8}" rx="${br * 0.22}" fill="#fff" opacity="0.92"/>`);
       const tx = bx + br + 12;
-      const lignes = couper(carte.nom, 34);
+      const lignes = couper(carte.nom, carte.w >= 370 ? 34 : Math.floor((carte.w - 90) / 7.6));
       const rangs = 1 + lignes.length;           // ligne du code + lignes du nom
       const rowH = 19;
       const base = by - ((rangs - 1) * rowH) / 2 + 6;   // bloc centré verticalement sur le centre de la carte (= centre de la bulle)

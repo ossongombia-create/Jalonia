@@ -9,7 +9,7 @@ import * as store from "./store.js";
 import { champ, ajusterToutes } from "./formulaire.js";
 import { icone } from "./icones.js";
 import {
-  CATEGORIES, EXTREMITES, FICHE_CHAMPS, FORMAT_CODE_LIBRE, FORMAT_CODE_PROCESSUS, analyserCode, codeTypeDuDocument, ficheProcessus, libelleProcessus, nomenclatureActive, processusParCategorie, documentParCode,
+  CATEGORIES, EXTREMITES, FICHE_CHAMPS, SCHEMAS, SENS, FORMAT_CODE_LIBRE, FORMAT_CODE_PROCESSUS, analyserCode, codeTypeDuDocument, ficheProcessus, libelleProcessus, nomenclatureActive, processusParCategorie, documentParCode,
 } from "./cartographie.js";
 import { importerPdf } from "./cartographie-pdf.js";
 import { svgCartographie } from "./carto-dessin.js";
@@ -158,20 +158,43 @@ async function genererWordNiveau1() {
   telecharger(octets, `cartographie-niveau1-${baseNom(c)}.docx`, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 }
 
-// La bibliothèque de modèles : 50 cartographies de départ par secteur. Choisir en charge une (remplace la saisie en cours).
+// Miniature d'un schéma : le SVG de carto-dessin.js passé en image (data URL) ; aucun HTML injecté.
+const miniature = (c) => h("img", { class: "carto-miniature", alt: "", src: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgCartographie(c)) });
+
+// La bibliothèque de modèles (v1.5) : 50 schémas différents, rangés par famille, chacun avec sa miniature.
+// Choisir un modèle le charge (remplace la saisie en cours).
 function blocModeles() {
   if (!modeles) return null;
+  const familles = SCHEMAS.map((s) => [s, BIBLIOTHEQUE.filter((m) => m.schema === s)]).filter(([, liste]) => liste.length);
   return h("section", { class: "carte carto-modeles" },
     h("div", { class: "carte-entete" },
       h("h3", {}, t("carto.modeles.titre")),
       h("button", { type: "button", onclick: () => { modeles = false; rendre(); } }, t("import.fermer"))),
     h("p", { class: "aide" }, t("carto.modeles.aide")),
-    h("ul", { class: "carto-modeles-liste" }, ...BIBLIOTHEQUE.map((m) =>
-      h("li", {},
-        h("span", { class: "carto-modeles-nom" }, m.organisation),
-        h("button", { type: "button", onclick: () => {
-          if (cs.estVideMaintenant() || confirm(t("carto.confirmer_remplacer"))) { cs.remplacer(m); rapport = []; modeles = false; apercu = true; rendre(); }
-        } }, t("carto.modeles.charger"))))));
+    h("div", { class: "carto-modeles-familles" }, ...familles.map(([s, liste]) =>
+      h("div", { class: "carto-modeles-famille" },
+        h("h4", {}, t("carto.schema." + s)),
+        h("ul", { class: "carto-modeles-liste" }, ...liste.map((m) =>
+          h("li", {},
+            miniature(m),
+            h("span", { class: "carto-modeles-nom" }, t("carto.modeles.variante", { n: m.variante, organisation: m.organisation.split("— ").pop(), nb: m.nbProcessus })),
+            h("button", { type: "button", onclick: () => {
+              if (cs.estVideMaintenant() || confirm(t("carto.confirmer_remplacer"))) { cs.remplacer(m); rapport = []; modeles = false; apercu = true; rendre(); }
+            } }, t("carto.modeles.charger")))))))));
+}
+
+// Choix du schéma de SA cartographie (v1.5) : la forme change, les processus restent.
+function choixSchema(c) {
+  const famille = h("select", { "aria-label": t("carto.schema.titre") },
+    ...SCHEMAS.map((s) => h("option", { value: s, selected: c.schema === s }, t("carto.schema." + s))));
+  famille.addEventListener("change", () => { cs.modifierSchema(famille.value); rendre(); });
+  const sens = h("select", { "aria-label": t("carto.schema.sens") },
+    ...SENS.map((v) => h("option", { value: v, selected: c.sens === v }, t("carto.schema.sens." + v))));
+  sens.addEventListener("change", () => { cs.modifierSchema(c.schema, sens.value); rendre(); });
+  return h("div", { class: "carto-schema" },
+    h("label", { class: "champ" }, h("span", {}, t("carto.schema.titre")), famille),
+    h("label", { class: "champ" }, h("span", {}, t("carto.schema.sens")), sens),
+    h("p", { class: "aide" }, t("carto.schema.aide")));
 }
 
 // L'aperçu dessiné de la cartographie (style 09) + les boutons d'export. Le SVG est construit par carto-dessin.js (texte échappé).
@@ -194,6 +217,7 @@ function blocApercu(c) {
         h("button", { type: "button", onclick: () => telechargerPng(svg, base) }, icone("dl", 16), t("carto.telecharger_png")),
         h("button", { type: "button", onclick: () => { apercu = false; rendre(); } }, t("import.fermer")))),
     h("p", { class: "aide" }, t("carto.apercu.aide")),
+    choixSchema(c),
     vue);
 }
 

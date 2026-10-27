@@ -7,6 +7,7 @@
 //     flux:      [{ id, de, vers, information, double }],           échange d'information entre deux « points » (voir POINTS)
 //     documents: [{ id, code, titre }],                             registre (facultatif) des codes déjà attribués : PR-ACH-01…
 //     nomenclature: { controle, procedure, instruction },           la façon dont l'organisation code ses documents (voir plus bas)
+//     schema, sens,                                                 la forme du dessin (v1.5) : une des SCHEMAS, sens « normal » ou « alterne »
 //   }
 //
 // Un « point » d'un échange est l'id d'un processus, ou l'un des mots : management, realisation, support, verification (un bloc entier),
@@ -41,8 +42,13 @@ export const MAX_DOCUMENTS = 500;
 export const FICHE_CHAMPS = ["finalite", "pilote", "ressources", "risques", "exigences"];
 export const MAX_FICHE = 2000;
 
+// La forme du dessin (v1.5, demande de Brice : 50 modèles de schémas différents). Le contenu (processus, flux, fiches) ne dépend pas
+// de la forme : on peut changer de schéma sans rien perdre. « bandes » est le dessin historique ; une cartographie sans schéma le garde.
+export const SCHEMAS = ["bandes", "chaine", "maison", "roue", "colonnes", "client", "serpentin", "etoile"];
+export const SENS = ["normal", "alterne"]; // « alterne » : l'autre orientation ou l'autre disposition de la même famille
+
 export function nouvelleCartographie() {
-  return { organisation: "", titre: "", contexte: "", exigences: "", satisfaction: "", processus: [], flux: [], documents: [], nomenclature: { ...NOMENCLATURE_PAR_DEFAUT }, fiches: {} };
+  return { organisation: "", titre: "", contexte: "", exigences: "", satisfaction: "", processus: [], flux: [], documents: [], nomenclature: { ...NOMENCLATURE_PAR_DEFAUT }, fiches: {}, schema: "bandes", sens: "normal" };
 }
 
 // Le type de code d'un document (« PR », « IT »…) d'après la nomenclature de l'organisation ; la valeur par défaut si elle est vide ou invalide.
@@ -100,6 +106,8 @@ export function nettoyerCartographie(brut, { nomenclature = NOMENCLATURE_PAR_DEF
   propre.contexte = texte(brut.contexte, 600);
   propre.exigences = texte(brut.exigences, 300);
   propre.satisfaction = texte(brut.satisfaction, 300);
+  propre.schema = SCHEMAS.includes(brut.schema) ? brut.schema : "bandes";
+  propre.sens = SENS.includes(brut.sens) ? brut.sens : "normal";
   const idsVus = new Set();
   const codesVus = new Set();
   (Array.isArray(brut.processus) ? brut.processus : []).slice(0, MAX_PROCESSUS).forEach((p) => {

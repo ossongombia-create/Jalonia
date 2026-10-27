@@ -6,7 +6,7 @@
 // d'un fichier, à l'import d'un PDF et au rechargement du navigateur.
 
 import {
-  nouvelleCartographie, nettoyerCartographie, depuisJSON, versJSON, estVide, POINTS_FIXES, CATEGORIES, MAX_PROCESSUS, MAX_FLUX, MAX_DOCUMENTS, FICHE_CHAMPS, MAX_FICHE,
+  nouvelleCartographie, nettoyerCartographie, depuisJSON, versJSON, estVide, POINTS_FIXES, CATEGORIES, MAX_PROCESSUS, MAX_FLUX, MAX_DOCUMENTS, FICHE_CHAMPS, MAX_FICHE, SCHEMAS, SENS,
 } from "./cartographie.js";
 import { nouvelId } from "./model.js";
 import { exempleCartographie } from "./exemple-carto.js";
@@ -72,6 +72,14 @@ export function modifierChamp(champ, valeur) {
   if (!CHAMPS.includes(champ) || typeof valeur !== "string") return;
   carto[champ] = valeur.slice(0, 600);
   apres(false);
+}
+
+// ---------- Forme du dessin (v1.5) : on change le schéma sans toucher au contenu ----------
+export function modifierSchema(schema, sens = carto.sens) {
+  if (!SCHEMAS.includes(schema) || !SENS.includes(sens)) return;
+  carto.schema = schema;
+  carto.sens = sens;
+  apres(true);
 }
 
 // ---------- Nomenclature des codes de documents ----------
