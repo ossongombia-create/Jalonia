@@ -1130,4 +1130,7 @@ export default {
   "mentions.licences.pdfjs": "PDF.js (Mozilla Foundation), to read a process map in PDF format — Apache 2.0 licence. It bundles core-js (Denis Pushkarev, CoreJS Company) — MIT licence.",
   "mentions.licences.police": "Outfit (The Outfit Project Authors), the typeface — SIL Open Font 1.1 licence.",
   "mentions.licences.fichier": "The full texts are in the vendor/pdfjs and css/fonts folders, and summarised in the LICENCES-TIERS.md file.",
+  "fermeture.titre": "This site closes on 15 December 2026.",
+  "fermeture.texte": "{nom} continues in each organisation's online application. Until then, save each document as a .json file (“Save” button): it can be resumed in the application with “File › Open a file”. Drafts kept in this browser will be lost when the site closes.",
+  "fermeture.lien": "Go to the online application",
 };
