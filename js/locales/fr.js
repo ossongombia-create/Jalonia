@@ -1130,4 +1130,7 @@ export default {
   "mentions.licences.pdfjs": "PDF.js (Mozilla Foundation), pour lire une cartographie au format PDF — licence Apache 2.0. Il embarque core-js (Denis Pushkarev, CoreJS Company) — licence MIT.",
   "mentions.licences.police": "Outfit (The Outfit Project Authors), la police de caractères — licence SIL Open Font 1.1.",
   "mentions.licences.fichier": "Les textes complets sont dans les dossiers vendor/pdfjs et css/fonts, et résumés dans le fichier LICENCES-TIERS.md.",
+  "fermeture.titre": "Ce site ferme le 15 décembre 2026.",
+  "fermeture.texte": "{nom} continue dans l'application en ligne de chaque organisation. D'ici là, enregistre chaque document en fichier .json (bouton « Enregistrer ») : il se reprendra dans l'application avec « Fichier › Ouvrir un fichier ». Les brouillons gardés dans ce navigateur seront perdus à la fermeture.",
+  "fermeture.lien": "Aller à l'application en ligne",
 };

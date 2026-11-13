@@ -755,3 +755,9 @@ dialog#fenetre-mentions::backdrop { background: rgba(0, 58, 73, .6); }
   #zone-impression .zone-vide { border: 0; min-height: 0; }
   #zone-impression .zone-vide::after { content: attr(data-texte); font-style: italic; color: var(--encre-legere); font-size: 9pt; }
 }
+
+/* Fermeture du site : bandeau en tête de la colonne de droite, sur toutes les vues (ne s'imprime pas). */
+.bandeau-fermeture { flex: none; padding: 10px 24px; background: #fff3cd; color: #4a3500; border-bottom: 1px solid #e6c463; font-size: 14px; line-height: 1.45; }
+.bandeau-fermeture p { margin: 0; }
+.bandeau-fermeture a { color: #004a5c; font-weight: 600; white-space: nowrap; }
+@media print { .bandeau-fermeture { display: none; } }
